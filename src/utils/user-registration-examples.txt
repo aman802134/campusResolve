@@ -1,0 +1,80 @@
+User Registration Example Payloads for All Roles
+================================================
+
+1. Campus Admin
+---------------
+{
+  "name": "Campus Admin User",
+  "email": "campusadmin@example.com",
+  "password": "CampusAdmin123",
+  "requestedRole": "campus_admin",
+  "campus": "687c983ee993d125c1594601",
+  "phone": "9876543210",
+  "gender": "male"
+}
+
+2. Department Admin
+-------------------
+{
+  "name": "Department Admin User",
+  "email": "deptadmin@example.com",
+  "password": "DeptAdmin123",
+  "requestedRole": "department_admin",
+  "campus": "<CAMPUS_ID>",
+  "department": "687cbf5ddf2762b87ef784bd",//computer science
+  "phone": "9876543211",
+  "gender": "female"
+}
+
+3. Faculty (Academic)
+---------------------
+{
+  "name": "Faculty Academic",
+  "email": "faculty.academic@example.com",
+  "password": "Faculty123",
+  "requestedRole": "faculty_academic",
+  "campus": "<CAMPUS_ID>",
+  "department": "<DEPARTMENT_ID>",
+  "phone": "9876543212",
+  "gender": "male"
+}
+
+4. Faculty (Non-Academic)
+-------------------------
+{
+  "name": "Faculty Non-Academic",
+  "email": "faculty.nac@example.com",
+  "password": "FacultyNAC123",
+  "requestedRole": "faculty_non_academic",
+  "campus": "<CAMPUS_ID>",
+  "department": "687cbfbadf2762b87ef784c0",//Electrical enginnerign
+  "phone": "9876543213",
+  "gender": "female"
+}
+
+5. Student
+----------
+{
+  "name": "Student User",
+  "email": "student@example.com",
+  "password": "Student123",
+  "requestedRole": "student",
+  "campus": "<CAMPUS_ID>",
+  "department": "<DEPARTMENT_ID>",//computer science
+  "phone": "9876543214",
+  "gender": "other"
+}
+
+Summary Table
+=============
+| Role                | Required Fields                                 |
+|---------------------|-------------------------------------------------|
+| campus_admin        | name, email, password, requestedRole, campus    |
+| department_admin    | name, email, password, requestedRole, campus, department |
+| faculty_academic    | name, email, password, requestedRole, campus, department |
+| faculty_non_academic| name, email, password, requestedRole, campus, department |
+| student             | name, email, password, requestedRole, campus, department |
+
+Notes:
+- Replace <CAMPUS_ID> and <DEPARTMENT_ID> with actual ObjectIds from your database.
+- After registration, a super admin must approve the requested role for elevated permissions. 

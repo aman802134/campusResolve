@@ -1,16 +1,18 @@
-import { USER_ROLES, FACULTY_TYPE, GENDER, USER_STATUS } from '../types/enums';
+// models/User.ts
+import { Schema, model, Document, Types } from 'mongoose';
+import { USER_ROLES, GENDER, USER_STATUS, ROLE_REQUEST_STATUS } from '../types/enums';
 
-import { Schema, model, Document } from 'mongoose';
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
   role: USER_ROLES;
-  campus: string;
-  department?: string;
-  facultyType?: FACULTY_TYPE;
-  phone: string;
-  gender: GENDER;
+  requestedRole?: USER_ROLES;
+  roleRequestStatus?: ROLE_REQUEST_STATUS;
+  campus: Types.ObjectId;
+  department?: Types.ObjectId;
+  phone?: string;
+  gender?: GENDER;
   status: USER_STATUS;
   avatarUrl?: string;
   verified: boolean;
@@ -26,50 +28,88 @@ const userSchema = new Schema<IUser>(
       required: true,
       trim: true,
     },
+
     email: {
       type: String,
       required: true,
       unique: true,
-      trim: true,
       lowercase: true,
+      trim: true,
     },
+
     password: {
       type: String,
       required: true,
       minlength: 6,
     },
+
     role: {
       type: String,
-      enum: ['student', 'faculty', 'department_admin', 'campus_admin', 'super_admin'],
-      default: 'student',
+      enum: Object.values(USER_ROLES),
+      default: USER_ROLES.STUDENT,
       required: true,
     },
-    facultyType: {
+
+    requestedRole: {
       type: String,
-      enum: ['academic', 'non_academic'],
-      required: function (this: IUser) {
-        return this.role === 'faculty';
-      },
+      enum: Object.values(USER_ROLES),
+      default: undefined,
+    },
+    roleRequestStatus: {
+      type: String,
+      enum: Object.values(ROLE_REQUEST_STATUS),
+      default: ROLE_REQUEST_STATUS.PENDING, // or ROLE_REQUEST_STATUS.PENDING if you want
     },
     campus: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    department: {
-      type: String,
-      required: function (this: IUser) {
-        return ['faculty', 'student'].includes(this.role); // optional for others
+      type: Schema.Types.ObjectId,
+      ref: 'Campus',
+      required: function () {
+        return this.role !== 'super_admin';
       },
     },
-    phone: { type: String },
+
+    department: {
+      type: Schema.Types.ObjectId,
+      ref: 'Department',
+      required: function (this: IUser) {
+        return [
+          USER_ROLES.STUDENT,
+          USER_ROLES.FACULTY_ACADEMIC,
+          USER_ROLES.FACULTY_NON_ACADEMIC,
+        ].includes(this.role);
+      },
+    },
+
+    phone: {
+      type: String,
+      default: '',
+    },
+
     gender: {
       type: String,
-      enum: ['male', 'female', 'other'],
+      enum: Object.values(GENDER),
     },
-    verified: { type: Boolean, default: false }, //to verify the user using mail or otp
-    avatarUrl: { type: String, default: '' }, // for profile photo
-    isBanned: { type: Boolean, default: false }, // usecase for admin side
+
+    status: {
+      type: String,
+      enum: Object.values(USER_STATUS),
+      default: USER_STATUS.PENDING,
+    },
+
+    avatarUrl: {
+      type: String,
+      default: '',
+    },
+
+    verified: {
+      type: Boolean,
+      default: false,
+    },
+
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

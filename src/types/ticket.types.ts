@@ -1,37 +1,37 @@
-export enum TICKET_STATUS {
-  Assigned = 'assigned',
-  Pending = 'pending',
-  In_progress = 'in_progress',
-  Resolved = 'resolved',
-  Rejected = 'rejected',
-  Escalated = 'escalated',
-}
-export enum PRIORITY {
-  low = 'low',
-  medium = 'medium',
-  high = 'high',
-  critical = 'critical',
-}
+import { PRIORITY, TICKET_STATUS } from './enums';
 
-export type createTicketPayload = {
+export type CreateTicketPayload = {
   title: string;
   description: string;
-  department: string;
-  priority?: PRIORITY; // optional, can default to 'normal'
-  isSensitive?: boolean; // optional
-  attachments?: string[];
+  campus: string; // Campus._id
+  department: string; // Department._id
+  domain?: string; // Optional domain slug
+  priority?: PRIORITY; // Defaults to 'low'
+  isSensitive?: boolean;
+  attachments?: string[]; // Optional attachment URLs or IDs
 };
 
-export type updateTicketPayload = {
+export type UpdateTicketPayload = {
   status?: TICKET_STATUS;
-  assignedTo?: string;
+  assignedToId?: string; // User._id
+  comment?: string; // Optional note for history
+  escalated?: boolean;
 };
-export type ticketResponse = {
+
+export type TicketResponse = {
   id: string;
   title: string;
   description: string;
+  campus: {
+    id: string;
+    name: string;
+  };
+  department: {
+    id: string;
+    name: string;
+  };
+  domain?: string;
   status: TICKET_STATUS;
-  department: string;
   priority: PRIORITY;
   isSensitive: boolean;
   attachments?: string[];
@@ -43,6 +43,18 @@ export type ticketResponse = {
     id: string;
     name: string;
   };
+  escalated: boolean;
+  escalationLevel: number;
+  history: Array<{
+    updatedBy: {
+      id: string;
+      name: string;
+    };
+    previousStatus: TICKET_STATUS;
+    newStatus: TICKET_STATUS;
+    comment?: string;
+    date: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 };

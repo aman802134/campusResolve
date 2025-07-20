@@ -1,0 +1,107 @@
+{
+  "name": "Ravi Kumar",
+  "email": "ravi.kumar@example.com",
+  "password": "SecurePass123",
+  "campusId": "687a53054aa9b06074ef3589"//North Valley Campus
+}
+{
+  "name": "Anita Sharma",
+  "email": "anita.sharma@example.com",
+  "password": "Faculty@123",
+  "requestedRole": "FACULTY",
+  "campusId": "687a534d4aa9b06074ef358c",
+  "departmentId": "687a540f4aa9b06074ef35a3",
+  "phone": "9876543210",
+  "gender": "FEMALE"
+}
+{
+  "name": "Rajesh Mehta",
+  "email": "rajesh.mehta@example.com",
+  "password": "DeptAdmin#456",
+  "requestedRole": "DEPARTMENT_ADMIN",
+  "campusId": "687a53604aa9b06074ef3590",
+  "departmentId": "687a54004aa9b06074ef359d",
+  "phone": "9123456789",
+  "gender": "MALE"
+}
+{
+  "name": "Sneha Patel",
+  "email": "sneha.patel@example.com",
+  "password": "Admin@Campus1",
+  "requestedRole": "CAMPUS_ADMIN",
+  "campusId": "687a536b4aa9b06074ef3593",
+  "phone": "9988776655",
+  "gender": "FEMALE"
+}
+{
+  "name": "Tarun Joshi",
+  "email": "tarun.joshi@example.com",
+  "password": "Tarun@789",
+  "campusId": "687a53764aa9b06074ef3596",
+  "phone": "9812345670",
+  "gender": "MALE"
+}
+
+
+//super admin login credential
+{
+    "email": "superadmin@example.com",
+    "password": "superadmin123"
+}
+// campus admin credential
+{
+  "name": "Aman Pandey",
+  "email": "aman.pandey@example.com",
+  "password": "Admin@Campus2",
+  "requestedRole": "campus_admin",
+  "campus": "687c983ee993d125c1594601",
+  "phone": "9988776655",
+  "gender": "male"
+}
+
+/// departments 
+[
+  {
+    "name": "Computer Science",
+    "campus": "687c983ee993d125c1594601",
+    "domain": "cs"
+  },
+  {
+    "name": "Electrical Engineering",
+    "campus": "687c983ee993d125c1594601",
+    "domain": "ee"
+  },
+  {
+    "name": "Mechanical Engineering",
+    "campus": "687c983ee993d125c1594601",
+    "domain": "me"
+  },
+  {
+    "name": "Administration",
+    "campus": "687c983ee993d125c1594601",
+    "domain": "admin"
+  }
+]
+
+//department with domain
+{
+  "name": "Computer Science",
+  "campus": "687c983ee993d125c1594601",
+  "domain": ["labs", "wifi", "software", "hardware", "exam-portal"]
+}
+{
+  "name": "Electrical Engineering",
+  "campus": "687c983ee993d125c1594601",
+  "domain": ["lab-equipment", "wiring", "lighting", "power-supply"]
+}
+{
+  "name": "Mechanical Engineering",
+  "campus": "687c983ee993d125c1594601",
+  "domain": ["workshop", "machines", "tools", "safety", "lab-maintenance"]
+}
+{
+  "name": "Administration",
+  "campus": "687c983ee993d125c1594601",
+  "domain": ["hostel", "transport", "fees", "admission", "exam"]
+}
+

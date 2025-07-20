@@ -1,17 +1,34 @@
 import { z } from 'zod';
-import { PRIORITY, TICKET_STATUS } from '../types/ticket.types';
+import { PRIORITY, TICKET_STATUS } from '../types/enums';
 
 export const createTicketSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  department: z.string().min(1, 'Department is required'),
-  priority: z.enum([PRIORITY.low, PRIORITY.medium, PRIORITY.medium, PRIORITY.high]).optional(),
+  title: z.string({ message: 'Title is required' }).trim().min(1),
+  description: z.string({ message: 'Description is required' }).min(1),
+
+  department: z.string({ message: 'Department is required' }).min(1),
+  campus: z.string({ message: 'Campus is required' }).min(1),
+  domain: z.string().min(1).optional(),
+
+  // priority is optional, defaults to 'low' server-side
+  priority: z.enum([PRIORITY.low, PRIORITY.medium, PRIORITY.high, PRIORITY.critical]).optional(),
+
   isSensitive: z.boolean().optional(),
-  attachments: z.array(z.string().url()).optional(),
+
+  attachments: z.array(z.string().url({ message: 'Attachment must be a valid URL' })).optional(), // Optionally validate with regex if it's a file/URL
+
+  escalated: z.boolean().optional(),
+  escalationLevel: z.number().int().min(0).optional(),
+
+  // ⛔️ Fields NOT allowed in user-submitted payloads:
+  // assignedTo, createdBy, status will be handled by backend
 });
 
+/**
+ * Schema for updating ticket status (admin or dept admin side)
+ */
 export const updateTicketStatusSchema = z.object({
   ticketId: z.string().min(1, 'Ticket ID is required'),
+
   status: z.enum([
     TICKET_STATUS.Assigned,
     TICKET_STATUS.In_progress,
@@ -19,5 +36,6 @@ export const updateTicketStatusSchema = z.object({
     TICKET_STATUS.Rejected,
     TICKET_STATUS.Escalated,
   ]),
-  assignedTo: z.string().optional(), // assuming you’re assigning a userId
+
+  assignedTo: z.string().optional(), // Only used if status is being set to 'Assigned'
 });

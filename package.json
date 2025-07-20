@@ -12,7 +12,8 @@
     "start": "node dist/app.js",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:seed":"node ./dist/seed/seed-super-admin.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

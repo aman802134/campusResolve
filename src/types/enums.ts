@@ -10,14 +10,42 @@ export enum STATUS_CODE {
   internal_server_err = 500,
   network_connec_timeout = 599,
 }
-export type USER_ROLES =
-  | 'student'
-  | 'faculty'
-  | 'department_admin'
-  | 'campus_admin'
-  | 'super_admin';
-export type USER_STATUS = 'active' | 'inactive' | 'suspended';
+export enum USER_ROLES {
+  STUDENT = 'student',
+  FACULTY_ACADEMIC = 'faculty_academic',
+  FACULTY_NON_ACADEMIC = 'faculty_non_academic',
+  DEPARTMENT_ADMIN = 'department_admin',
+  CAMPUS_ADMIN = 'campus_admin',
+  SUPER_ADMIN = 'super_admin',
+}
+export enum USER_STATUS {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PENDING = 'pending',
+  BANNED = 'banned',
+}
+export enum GENDER {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
+}
+export enum ROLE_REQUEST_STATUS {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+export enum TICKET_STATUS {
+  Assigned = 'assigned',
+  Pending = 'pending',
+  In_progress = 'in_progress',
+  Resolved = 'resolved',
+  Rejected = 'rejected',
+  Escalated = 'escalated',
+}
 
-export type FACULTY_TYPE = 'academic' | 'non_academic';
-
-export type GENDER = 'male' | 'female' | 'other';
+export enum PRIORITY {
+  low = 'low',
+  medium = 'medium',
+  high = 'high',
+  critical = 'critical',
+}
