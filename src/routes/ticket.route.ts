@@ -10,16 +10,26 @@ import {
   getUserTickets,
   getTicketById,
   updateTicket,
+  escalateTicket,
 } from '../controllers/ticket.controller';
+import { authorize } from '../middleware/authorization.middleware';
+import { USER_ROLES } from '../types/enums';
 
 const router = express.Router();
 router.post('/create-ticket', authenticate, validateRequest(createTicketSchema), createTicket);
 router.get('/all/:userId', authenticate, getUserTickets);
 router.get('/:id', authenticate, getTicketById);
 router.patch(
-  '/update-status/:ticketId',
+  '/update/:ticketId',
   authenticate,
+  authorize(USER_ROLES.CAMPUS_ADMIN, USER_ROLES.DEPARTMENT_ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(updateTicketStatusSchema),
   updateTicket,
+);
+router.patch(
+  '/escalate/:ticketId',
+  authenticate,
+  authorize(USER_ROLES.CAMPUS_ADMIN, USER_ROLES.DEPARTMENT_ADMIN, USER_ROLES.SUPER_ADMIN),
+  escalateTicket,
 );
 export const ticketRoute = router;

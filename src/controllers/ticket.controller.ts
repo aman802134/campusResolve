@@ -18,7 +18,6 @@ export const createTicket = async (req: AuthRequest, res: Response, next: NextFu
     if (!userId) throw new ApiError(401, 'Unauthorized');
 
     const payload: CreateTicketPayload = req.body;
-    console.log(payload);
     // Derive campus from JWT claims to avoid spoofing
     if (userRole === 'student' && payload.campus !== userCampus) {
       throw new ApiError(403, 'you can submit the complain to your campus only');
@@ -135,11 +134,13 @@ export const getTicketById = async (req: AuthRequest, res: Response, next: NextF
 // Update status and/or assignee, logging history
 export const updateTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const ticketId = req.params.id;
+    const ticketId = req.params.ticketId;
+    console.log('ticketId for updation:', JSON.stringify(ticketId)); // Debug: show exact value
     const payload: UpdateTicketPayload = req.body;
+    console.log(payload.assignedToId);
 
     if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-      throw new ApiError(400, 'Invalid ticket ID');
+      throw new ApiError(400, `Invalid ticket ID: ${ticketId}`);
     }
     const ticket = await TicketModel.findById(ticketId);
     if (!ticket) throw new ApiError(404, 'Ticket not found');
@@ -178,21 +179,24 @@ export const updateTicket = async (req: AuthRequest, res: Response, next: NextFu
 // Escalate a ticket (faculty → dept‑admin or dept‑admin → campus‑admin)
 export const escalateTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const ticketId = req.params.id;
+    const ticketId = req.params.ticketId;
     if (!mongoose.Types.ObjectId.isValid(ticketId)) {
       throw new ApiError(400, 'Invalid ticket ID');
     }
     const ticket = await TicketModel.findById(ticketId);
     if (!ticket) throw new ApiError(404, 'Ticket not found');
 
-    // Only faculty and dept‑admins can escalate
+    // Allow campus_admin, department_admin, and super_admin to escalate
     const { role, userId } = req.user!;
-    if (!['faculty_academic', 'faculty_non_academic', 'department_admin'].includes(role)) {
+    if (!['campus_admin', 'department_admin', 'super_admin'].includes(role)) {
       throw new ApiError(403, 'Forbidden');
     }
 
     ticket.escalated = true;
     ticket.escalationLevel = (ticket.escalationLevel || 0) + 1;
+    if (ticket.escalationLevel > 4) {
+      throw new ApiError(400, 'Maximum escalation level reached , you cannot escalate further');
+    }
     ticket.history.push({
       updatedBy: new mongoose.Types.ObjectId(userId),
       previousStatus: ticket.status,

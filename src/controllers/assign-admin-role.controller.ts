@@ -1,5 +1,4 @@
 // controllers/admin.controller.ts
-
 import { Request, Response, NextFunction } from 'express';
 import { UserModel } from '../models/user.model';
 import { ApiError } from '../utils/api-error';
@@ -54,6 +53,7 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
         { new: true }
       );
     }
+
     res.status(200).json({
       success: true,
       message: `User role approved and updated to ${user.role}`,

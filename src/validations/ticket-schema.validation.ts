@@ -17,7 +17,7 @@ export const createTicketSchema = z.object({
   attachments: z.array(z.string().url({ message: 'Attachment must be a valid URL' })).optional(), // Optionally validate with regex if it's a file/URL
 
   escalated: z.boolean().optional(),
-  escalationLevel: z.number().int().min(0).optional(),
+  escalationLevel: z.number().int().min(0).max(4).optional(),
 
   // ⛔️ Fields NOT allowed in user-submitted payloads:
   // assignedTo, createdBy, status will be handled by backend
@@ -27,8 +27,6 @@ export const createTicketSchema = z.object({
  * Schema for updating ticket status (admin or dept admin side)
  */
 export const updateTicketStatusSchema = z.object({
-  ticketId: z.string().min(1, 'Ticket ID is required'),
-
   status: z.enum([
     TICKET_STATUS.Assigned,
     TICKET_STATUS.In_progress,
@@ -37,5 +35,5 @@ export const updateTicketStatusSchema = z.object({
     TICKET_STATUS.Escalated,
   ]),
 
-  assignedTo: z.string().optional(), // Only used if status is being set to 'Assigned'
+  assignedToId: z.string().optional(), // Only used if status is being set to 'Assigned'
 });
