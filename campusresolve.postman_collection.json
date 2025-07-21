@@ -1,0 +1,392 @@
+{
+	"info": {
+		"_postman_id": "adc753d9-a2df-452c-80bd-26422f5e4ee8",
+		"name": "campusresolve",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19671876"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Aman Pandey\",\r\n  \"email\": \"aman.pandey@example.com\",\r\n  \"password\": \"Admin@Campus2\",\r\n  \"requestedRole\": \"campus_admin\",\r\n  \"campus\": \"687c983ee993d125c1594601\",\r\n  \"phone\": \"9988776655\",\r\n  \"gender\": \"male\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}auth/register",
+							"host": [
+								"{{cr}}auth"
+							],
+							"path": [
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": " {\r\n  \"email\": \"superadmin@example.com\",\r\n    \"password\": \"superadmin123\"\r\n }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}auth/login",
+							"host": [
+								"{{cr}}auth"
+							],
+							"path": [
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getUsers",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "getUserByid",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"request": {
+						"method": "POST",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "campus",
+			"item": [
+				{
+					"name": "create-campus",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"TechVille Institute of Engineering\",\r\n  \"location\": \"New Delhi\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}campus/create-campus",
+							"host": [
+								"{{cr}}campus"
+							],
+							"path": [
+								"create-campus"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getAllcampus",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{cr}}campus/all-campus",
+							"host": [
+								"{{cr}}campus"
+							],
+							"path": [
+								"all-campus"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "department",
+			"item": [
+				{
+					"name": "createDepartment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "    {\r\n    \"name\": \"Administration\",\r\n    \"campus\": \"687c983ee993d125c1594601\"\r\n  }\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}department/create-department",
+							"host": [
+								"{{cr}}department"
+							],
+							"path": [
+								"create-department"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getDepartments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{cr}}department/get-departments",
+							"host": [
+								"{{cr}}department"
+							],
+							"path": [
+								"get-departments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "updateDomains",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"domain\" : [\"lab-equipment\", \"wiring\", \"lighting\", \"power-supply\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}department/687cbfbadf2762b87ef784c0/domain",
+							"host": [
+								"{{cr}}department"
+							],
+							"path": [
+								"687cbfbadf2762b87ef784c0",
+								"domain"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "assignRoles",
+			"item": [
+				{
+					"name": "assign-role",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{cr}}admin/assign-role/687cc967bd3fdb4c3809897e",
+							"host": [
+								"{{cr}}admin"
+							],
+							"path": [
+								"assign-role",
+								"687cc967bd3fdb4c3809897e"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "reject-role",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{cr}}admin/reject-role/687cc967bd3fdb4c3809897e",
+							"host": [
+								"{{cr}}admin"
+							],
+							"path": [
+								"reject-role",
+								"687cc967bd3fdb4c3809897e"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "fetchAllPendingRoles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{cr}}admin/pending-role-requests",
+							"host": [
+								"{{cr}}admin"
+							],
+							"path": [
+								"pending-role-requests"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ticket",
+			"item": [
+				{
+					"name": "create-ticket",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Monitors not working\",\r\n  \"description\": \"In the computer lab two monitors are not wroking simultaneously\",\r\n  \"campus\": \"687c983ee993d125c1594601\",\r\n  \"department\": \"687cbf5ddf2762b87ef784bd\",\r\n  \"domain\": \"lab\",\r\n  \"priority\": \"low\",\r\n  \"isSensitive\": false,\r\n  \"attachments\": [\"https://example.com/photo1.jpg\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}ticket/create-ticket",
+							"host": [
+								"{{cr}}ticket"
+							],
+							"path": [
+								"create-ticket"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getUserTickets",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "getTicketByid",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "updateTicket",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\" : \"assigned\",\r\n    \"assignedToId\" : \"687d019781e98784e1645deb\",\r\n    \"comment\" : \"ticke has been assigned to sneha kumari\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{cr}}ticket/update/687d2d9bfe23e367d28989f4\n",
+							"host": [
+								"{{cr}}ticket"
+							],
+							"path": [
+								"update",
+								"687d2d9bfe23e367d28989f4\n"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "escalateTicket",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{cr}}escalate/687d2d9bfe23e367d28989f4",
+							"host": [
+								"{{cr}}escalate"
+							],
+							"path": [
+								"687d2d9bfe23e367d28989f4"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "cr",
+			"value": "http://localhost:4000/api/v1/\n\n",
+			"type": "string"
+		}
+	]
+}
