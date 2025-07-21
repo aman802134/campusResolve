@@ -8,7 +8,7 @@
 
 ## 🚀 Live Demo
 
-[campusresolve api]()
+[campusresolve api](https://campusresolve-api.onrender.com/)
 
 ## ✅ Features
 
