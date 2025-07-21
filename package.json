@@ -15,6 +15,9 @@
     "format": "prettier --write .",
     "db:seed": "node ./dist/seed/seed-super-admin.js"
   },
+  "engines": {
+      "node": ">=18.0.0"
+    },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
