@@ -14,6 +14,7 @@ export interface RegisterType {
   department?: string; // optional, based on requested role
   phone?: string;
   gender?: GENDER;
+  avatarUrl?: string; // optional, can be uploaded later
 }
 
 /**
@@ -61,4 +62,5 @@ export interface JwtPayload {
   status: USER_STATUS;
   verified: boolean;
   isBanned: boolean;
+  avatarUrl?: string; // optional, can be used for profile picture
 }

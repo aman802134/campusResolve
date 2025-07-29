@@ -7,6 +7,8 @@ import { RegisterType, LoginType, AuthResponse, JwtPayload } from '../types/auth
 import { generateAccessToken, generateRefreshToken } from '../utils/token-creator';
 import { ROLE_REQUEST_STATUS, USER_ROLES, USER_STATUS } from '../types/enums';
 import { AuthRequest } from '../types/request';
+import uploadImage from '../cloudinary/cloudinary';
+import { registerSchema } from '../validations/auth-schema.validation';
 
 export const register = async (
   req: Request<{}, {}, RegisterType>,
@@ -14,7 +16,35 @@ export const register = async (
   next: NextFunction,
 ) => {
   try {
-    const payload = req.body;
+    // Optionally coerce fields here if needed (e.g., convert string to number/boolean)
+    // Then validate:
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((err) => ({
+          field: err.path.join('.'),
+          message: err.message,
+        })),
+      });
+    }
+    const payload = parsed.data;
+
+    // Handle file upload
+    let avatarUrl = payload.avatarUrl;
+    if (req.file) {
+      avatarUrl = req.file.path; // or whatever you want to store
+    }
+    if (!avatarUrl) {
+      return res.status(400).json({ error: 'No file uploaded or URL provided' });
+    }
+    const filePath = avatarUrl;
+    const result = await uploadImage(filePath ? filePath : '');
+    if (!result || result.msg) {
+      throw new ApiError(500, 'Image upload failed: ' + (result.msg || 'Unknown error'));
+    }
+    const image = result.url;
     // Basic payload check
     if (!payload) {
       throw new ApiError(400, 'Missing required fields');
@@ -28,8 +58,9 @@ export const register = async (
     const hashed = await bcrypt.hash(payload.password, 10);
     const newUser = await UserModel.create({
       ...payload,
+      avatarUrl: image,
       password: hashed,
-      role : payload.requestedRole || USER_ROLES.STUDENT,
+      role: payload.requestedRole || USER_ROLES.STUDENT,
       status: USER_STATUS.PENDING, // or ACTIVE if you want auto‑activate
       roleRequestStatus: ROLE_REQUEST_STATUS.PENDING,
       verified: false,
@@ -54,7 +85,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const getUserById = async(req:AuthRequest , res: Response , next : NextFunction)=>{
+export const getUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // Only super_admin, campus_admin, department_admin, or faculty_academic can access
     const requester = req.user;
@@ -62,18 +93,18 @@ export const getUserById = async(req:AuthRequest , res: Response , next : NextFu
       USER_ROLES.SUPER_ADMIN,
       USER_ROLES.CAMPUS_ADMIN,
       USER_ROLES.DEPARTMENT_ADMIN,
-      USER_ROLES.FACULTY_ACADEMIC
+      USER_ROLES.FACULTY_ACADEMIC,
     ];
     if (!requester || !allowedRoles.includes(requester.role)) {
       throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
     }
     const userId = req.params.userId;
-    if(!userId){
-      throw new ApiError(400 , "userId not found");
+    if (!userId) {
+      throw new ApiError(400, 'userId not found');
     }
     const user = await UserModel.findById(userId);
-    if(!user){
-      throw new ApiError(404 , "user not found")
+    if (!user) {
+      throw new ApiError(404, 'user not found');
     }
     // Only super_admin can fetch any user; others must match campus
     if (
@@ -85,15 +116,17 @@ export const getUserById = async(req:AuthRequest , res: Response , next : NextFu
     // Department admin can only fetch users from their own department
     if (
       requester.role === 'department_admin' &&
-      (!user.department || !requester.department || user.department.toString() !== requester.department.toString())
+      (!user.department ||
+        !requester.department ||
+        user.department.toString() !== requester.department.toString())
     ) {
       throw new ApiError(403, 'Forbidden: You can only access users from your own department');
     }
-    res.status(200).json({success : true, data : user})
+    res.status(200).json({ success: true, data: user });
   } catch (error) {
     next(error);
   }
-}
+};
 
 export const login = async (
   req: Request<{}, {}, LoginType>,
@@ -154,7 +187,7 @@ export const login = async (
         name: user.name,
         email: user.email,
         role: user.role,
-        campus: user.campus ? user.campus.toString() : "",
+        campus: user.campus ? user.campus.toString() : '',
         department: user.department ? user.department.toString() : undefined,
         phone: user.phone,
         gender: user.gender,
