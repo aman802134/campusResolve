@@ -1,15 +1,8 @@
 import { z } from 'zod';
+import { USER_ROLES } from '../types/enums';
 
 // Unified role enum for consistency
-export const RoleEnum = z.enum([
-  'student',
-  'faculty_academic',
-  'faculty_non_academic',
-  'department_admin',
-  'campus_admin',
-  'super_admin',
-]);
-export type Role = z.infer<typeof RoleEnum>;
+export type Role = z.infer<typeof USER_ROLES>;
 
 export const GenderEnum = z.enum(['male', 'female', 'other']);
 
@@ -20,7 +13,7 @@ export const registerSchema = z
     password: z.string().min(6, 'Password must be at least 6 characters'),
 
     // ⬇️ This replaces `role`
-    requestedRole: RoleEnum.optional(),
+    requestedRole: z.enum(USER_ROLES).optional(),
 
     campus: z.string().min(1, 'Campus is required'), // should be an ObjectId string
     department: z.string().optional(), // required conditionally
@@ -31,11 +24,11 @@ export const registerSchema = z
   })
   .superRefine((data, ctx) => {
     // Roles that require a department
-    const needsDept: Role[] = [
-      'student',
-      'faculty_academic',
-      'faculty_non_academic',
-      'department_admin',
+    const needsDept: USER_ROLES[] = [
+      USER_ROLES.STUDENT,
+      USER_ROLES.FACULTY_ACADEMIC,
+      USER_ROLES.FACULTY_NON_ACADEMIC,
+      USER_ROLES.DEPARTMENT_ADMIN,
     ];
 
     if (data.requestedRole && needsDept.includes(data.requestedRole) && !data.department) {

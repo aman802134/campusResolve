@@ -7,14 +7,14 @@ import { JwtPayload } from '../types/auth.payload';
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies.accessToken;
+    const token = req.cookies?.accessToken;
     if (!token) {
-      throw new ApiError(401, 'unauthorized , please provide valid token !');
+      return next(new ApiError(401, 'unauthorized , please provide valid token !'));
     }
     const decode = jwt.verify(token, config.jwt.accessSecret) as JwtPayload;
     req.user = decode;
     next();
   } catch (error: any) {
-    throw new ApiError(401, error);
+    next(new ApiError(401, error));
   }
 };

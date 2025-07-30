@@ -1,14 +1,23 @@
 import express from 'express';
 import { validateRequest } from '../validations/validate-request';
 import { loginSchema, registerSchema } from '../validations/auth-schema.validation';
-import { getUserById, getUsers, login, logout, register } from '../controllers/auth.controller';
+import {
+  getUserById,
+  getUsers,
+  login,
+  logout,
+  register,
+  requestRole,
+} from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { authorize } from '../middleware/authorization.middleware';
 import { USER_ROLES } from '../types/enums';
 import upload from '../multer/multer.middleware';
+import { requestRoleSchema } from '../validations/request-role-validation';
 
 const router = express.Router();
 router.post('/register', upload.single('avatarUrl'), register);
+router.patch('/request-role', authenticate, requestRole);
 router.post('/login', validateRequest(loginSchema), login);
 router.get('/get-users', authenticate, getUsers);
 router.get(

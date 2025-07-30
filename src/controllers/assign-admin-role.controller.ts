@@ -13,7 +13,7 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
     const user = await UserModel.findById(userId);
     if (!user) throw new ApiError(404, 'User not found');
 
-    if(!user.requestedRole){
+    if (!user.requestedRole) {
       throw new ApiError(400, 'User has not requested any role');
     }
     // Prevent assigning super_admin via request
@@ -22,7 +22,14 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
     }
 
     // Role-specific required field validation
-    if ([USER_ROLES.DEPARTMENT_ADMIN, USER_ROLES.STUDENT, USER_ROLES.FACULTY_ACADEMIC, USER_ROLES.FACULTY_NON_ACADEMIC].includes(user.requestedRole)) {
+    if (
+      [
+        USER_ROLES.DEPARTMENT_ADMIN,
+        USER_ROLES.STUDENT,
+        USER_ROLES.FACULTY_ACADEMIC,
+        USER_ROLES.FACULTY_NON_ACADEMIC,
+      ].includes(user.requestedRole)
+    ) {
       if (!user.department) {
         throw new ApiError(400, `Cannot assign role ${user.requestedRole}: department is missing.`);
       }
@@ -43,14 +50,14 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
       await CampusModel.findByIdAndUpdate(
         user.campus,
         { $addToSet: { admins: user._id } }, // $addToSet avoids duplicates
-        { new: true }
+        { new: true },
       );
     }
     if (user.role === USER_ROLES.DEPARTMENT_ADMIN && user.department) {
       await DepartmentModel.findByIdAndUpdate(
         user.department,
-        { $Set: { admin: user._id } }, // $addToSet avoids duplicates
-        { new: true }
+        { $set: { admin: user._id } }, // $addToSet avoids duplicates
+        { new: true },
       );
     }
 
@@ -94,7 +101,11 @@ export const rejectRequestedRole = async (req: Request, res: Response, next: Nex
   }
 };
 
-export const getAllPendingRoleRequests = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllPendingRoleRequests = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const pendingUsers = await UserModel.find({ roleRequestStatus: ROLE_REQUEST_STATUS.PENDING });
     res.status(200).json({

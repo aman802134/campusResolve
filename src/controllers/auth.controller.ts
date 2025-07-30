@@ -9,15 +9,17 @@ import { ROLE_REQUEST_STATUS, USER_ROLES, USER_STATUS } from '../types/enums';
 import { AuthRequest } from '../types/request';
 import uploadImage from '../cloudinary/cloudinary';
 import { registerSchema } from '../validations/auth-schema.validation';
-
+import { requestRoleSchema } from '../validations/request-role-validation';
+import mongoose from 'mongoose';
+/**
+ * @desc Register a new user
+ */
 export const register = async (
   req: Request<{}, {}, RegisterType>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    // Optionally coerce fields here if needed (e.g., convert string to number/boolean)
-    // Then validate:
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -29,40 +31,41 @@ export const register = async (
         })),
       });
     }
+
     const payload = parsed.data;
 
-    // Handle file upload
+    // Handle avatar upload
     let avatarUrl = payload.avatarUrl;
-    if (req.file) {
-      avatarUrl = req.file.path; // or whatever you want to store
-    }
-    if (!avatarUrl) {
-      return res.status(400).json({ error: 'No file uploaded or URL provided' });
-    }
-    const filePath = avatarUrl;
-    const result = await uploadImage(filePath ? filePath : '');
-    if (!result || result.msg) {
-      throw new ApiError(500, 'Image upload failed: ' + (result.msg || 'Unknown error'));
-    }
-    const image = result.url;
-    // Basic payload check
-    if (!payload) {
-      throw new ApiError(400, 'Missing required fields');
+    if (req.file?.path) {
+      avatarUrl = req.file.path;
     }
 
-    const exists = await UserModel.findOne({ email: payload.email });
-    if (exists) {
+    if (!avatarUrl) {
+      return res.status(400).json({ error: 'No avatar file uploaded or URL provided' });
+    }
+
+    const uploadResult = await uploadImage(avatarUrl);
+    if (!uploadResult || uploadResult.msg) {
+      throw new ApiError(500, 'Image upload failed: ' + (uploadResult.msg || 'Unknown error'));
+    }
+
+    const imageUrl = uploadResult.url;
+
+    const existing = await UserModel.findOne({ email: payload.email });
+    if (existing) {
       throw new ApiError(409, 'Email already in use');
     }
 
-    const hashed = await bcrypt.hash(payload.password, 10);
+    const hashedPassword = await bcrypt.hash(payload.password, 10);
+
     const newUser = await UserModel.create({
       ...payload,
-      avatarUrl: image,
-      password: hashed,
-      role: payload.requestedRole || USER_ROLES.STUDENT,
-      status: USER_STATUS.PENDING, // or ACTIVE if you want auto‑activate
-      roleRequestStatus: ROLE_REQUEST_STATUS.PENDING,
+      avatarUrl: imageUrl,
+      password: hashedPassword,
+      role: USER_ROLES.STUDENT, // 🔐 Only assign student by default
+      roleRequestStatus: null,
+      requestedRole: null,
+      status: USER_STATUS.PENDING,
       verified: false,
       isBanned: false,
     });
@@ -76,6 +79,74 @@ export const register = async (
     next(err);
   }
 };
+
+/**
+ * @desc Request Role Change (after registration)
+ */
+export const requestRole = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const parsed = requestRoleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((err) => ({
+          field: err.path.join('.'),
+          message: err.message,
+        })),
+      });
+    }
+
+    const { requestedRole, campus, department } = parsed.data;
+
+    if (requestedRole === USER_ROLES.SUPER_ADMIN || requestedRole === USER_ROLES.STUDENT) {
+      throw new ApiError(400, 'Invalid role request');
+    }
+    // Enforce extra info based on requestedRole
+    if (requestedRole === USER_ROLES.CAMPUS_ADMIN && !campus) {
+      throw new ApiError(400, 'Campus is required when requesting campus_admin role');
+    }
+
+    if (requestedRole === USER_ROLES.DEPARTMENT_ADMIN) {
+      if (!department) {
+        throw new ApiError(400, 'Department is required when requesting department_admin role');
+      }
+      if (!campus) {
+        throw new ApiError(400, 'Campus is required when requesting department_admin role');
+      }
+    }
+
+    const user = await UserModel.findById(req.user?.userId);
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    if (user.roleRequestStatus === ROLE_REQUEST_STATUS.PENDING) {
+      throw new ApiError(400, 'Role request already pending');
+    }
+
+    user.requestedRole = requestedRole;
+    user.roleRequestStatus = ROLE_REQUEST_STATUS.PENDING;
+
+    // Assign campus or department if necessary
+    if (requestedRole === USER_ROLES.CAMPUS_ADMIN) {
+      user.campus = new mongoose.Types.ObjectId(campus);
+    }
+    if (requestedRole === USER_ROLES.DEPARTMENT_ADMIN) {
+      user.department = new mongoose.Types.ObjectId(department);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Role request submitted successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const users = await UserModel.find();
@@ -153,6 +224,8 @@ export const login = async (
       userId: user._id?.toString?.() || '',
       role: user.role,
       email: user.email,
+      name: user.name,
+      requestedRole: user.requestedRole,
       campus: user.campus ? user.campus.toString() : undefined,
       department: user.department ? user.department.toString() : undefined,
       status: user.status,

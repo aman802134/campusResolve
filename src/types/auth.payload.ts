@@ -1,6 +1,5 @@
 // types/auth.ts
 import { USER_ROLES, GENDER, USER_STATUS } from './enums';
-
 /**
  * Payload for user registration
  */
@@ -8,15 +7,17 @@ export interface RegisterType {
   name: string;
   email: string;
   password: string;
-  role?: USER_ROLES; // default is STUDENT; admins will approve elevated roles
-  requestedRole?: USER_ROLES; // if user wants to be deptAdmin/campusAdmin/faculty, etc.
   campus: string; // required: must refer to a Campus _id
   department?: string; // optional, based on requested role
   phone?: string;
   gender?: GENDER;
   avatarUrl?: string; // optional, can be uploaded later
 }
-
+export interface RequestedRoleType {
+  requestedRole: USER_ROLES; // optional, can be used to request a different role
+  campus: string; // required: must refer to a Campus _id
+  department?: string; // optional, based on requested role
+}
 /**
  * Payload for login
  */
@@ -36,7 +37,7 @@ export interface AuthResponse {
     id: string;
     name: string;
     email: string;
-    role: USER_ROLES;
+    role: USER_ROLES; // ✅ Add this
     requestedRole?: USER_ROLES;
     campus: string; // ObjectId as string
     department?: string; // ObjectId as string (optional)
@@ -55,12 +56,14 @@ export interface AuthResponse {
 export interface JwtPayload {
   userId: string;
   email: string;
-  role: USER_ROLES;
-  requestedRole?: USER_ROLES;
-  campus?: string; // campus ObjectId
-  department?: string; // department ObjectId
+  name: string;
+  // Note: `role` is required for access control
+  role: USER_ROLES; // ✅ Required for access control
+  requestedRole?: USER_ROLES; // Optional – only present if role upgrade is pending
+  campus?: string; // ObjectId as string
+  department?: string; // ObjectId as string
   status: USER_STATUS;
   verified: boolean;
   isBanned: boolean;
-  avatarUrl?: string; // optional, can be used for profile picture
+  avatarUrl?: string;
 }
