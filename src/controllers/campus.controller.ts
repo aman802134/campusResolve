@@ -78,3 +78,22 @@ export const getAllCampuses = async (req: AuthRequest, res: Response, next: Next
     next(error);
   }
 };
+export const getCampusById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const campusId = req.params.campusId;
+    if (!campusId) {
+      throw new ApiError(400, 'Campus ID is required');
+    }
+    const campus = await CampusModel.findById(campusId).populate('admins', 'name email');
+    if (!campus) {
+      throw new ApiError(404, 'Campus not found');
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Campus fetched successfully',
+      data: campus,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

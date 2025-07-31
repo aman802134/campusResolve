@@ -67,7 +67,29 @@ export const getDepartments = async (req: AuthRequest, res: Response) => {
     });
   }
 };
-
+export const getDepartmentById = async (req: AuthRequest, res: Response) => {
+  try {
+    const departmentId = req.params.departmentId;
+    if (!mongoose.Types.ObjectId.isValid(departmentId)) {
+      throw new ApiError(400, 'Invalid department ID');
+    }
+    const department = await DepartmentModel.findById(departmentId);
+    if (!department) {
+      throw new ApiError(404, 'Department not found');
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Department fetched successfully',
+      data: department,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Department fetching failed',
+      error: error.message,
+    });
+  }
+};
 export const updateDomain = async (req: AuthRequest, res: Response) => {
   try {
     const departmentId = req.params.departmentId;
@@ -80,7 +102,7 @@ export const updateDomain = async (req: AuthRequest, res: Response) => {
       throw new ApiError(404, 'Department not found');
     }
     const user = req.user!;
-    
+
     const isDeptAdmin =
       user.role === USER_ROLES.DEPARTMENT_ADMIN && department.admin?.toString() === user.userId;
     const isCampusAdmin =
