@@ -20,7 +20,7 @@ export const registerSchema = z
 
     phone: z.string().optional(),
     gender: GenderEnum.optional(),
-    avatarUrl: z.string().url('Avatar must be a valid URL').optional(),
+    // avatarUrl: z.string().url('Avatar must be a valid URL').optional(),
   })
   .superRefine((data, ctx) => {
     // Roles that require a department

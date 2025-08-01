@@ -18,7 +18,7 @@ router.post(
   authorize(USER_ROLES.SUPER_ADMIN),
   createDepartment,
 );
-router.get('/get-departments', authenticate, getDepartments);
+router.get('/get-departments', getDepartments);
 router.get('/get-department/:departmentId', authenticate, getDepartmentById);
 router.patch(
   '/:departmentId/domain',

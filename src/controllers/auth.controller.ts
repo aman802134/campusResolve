@@ -19,6 +19,10 @@ export const register = async (
   res: Response,
   next: NextFunction,
 ) => {
+  console.log("Request body:", req.body);
+    console.log("Request file:", req.file);
+    console.log("Request files:", req.files);
+    console.log("Request headers:", req.headers['content-type']);
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -35,7 +39,7 @@ export const register = async (
     const payload = parsed.data;
 
     // Handle avatar upload
-    let avatarUrl = payload.avatarUrl;
+    let avatarUrl = null;
     if (req.file?.path) {
       avatarUrl = req.file.path;
     }
