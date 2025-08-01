@@ -49,7 +49,28 @@ export interface AuthResponse {
     isBanned: boolean;
   };
 }
-
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: USER_ROLES; // ✅ Add this
+  requestedRole?: USER_ROLES;
+  campus: string; // ObjectId as string
+  department?: string; // ObjectId as string (optional)
+  phone?: string;
+  gender?: GENDER;
+  avatarUrl?: string;
+  status: USER_STATUS;
+  verified: boolean;
+  isBanned: boolean;
+}
+export interface DecodedToken {
+  userId: string;
+  email: string;
+  role: 'user' | 'admin' | 'campus_admin';
+  iat: number;
+  exp: number;
+}
 /**
  * JWT payload embedded in token
  */

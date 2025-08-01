@@ -1,9 +1,17 @@
 // controllers/auth.controller.ts
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { UserModel } from '../models/user.model';
 import { ApiError } from '../utils/api-error';
-import { RegisterType, LoginType, AuthResponse, JwtPayload } from '../types/auth.payload';
+import {
+  RegisterType,
+  LoginType,
+  AuthResponse,
+  JwtPayload,
+  User,
+  DecodedToken,
+} from '../types/auth.payload';
 import { generateAccessToken, generateRefreshToken } from '../utils/token-creator';
 import { ROLE_REQUEST_STATUS, USER_ROLES, USER_STATUS } from '../types/enums';
 import { AuthRequest } from '../types/request';
@@ -11,6 +19,7 @@ import uploadImage from '../cloudinary/cloudinary';
 import { registerSchema } from '../validations/auth-schema.validation';
 import { requestRoleSchema } from '../validations/request-role-validation';
 import mongoose from 'mongoose';
+import { config } from '../config/config';
 /**
  * @desc Register a new user
  */
@@ -245,7 +254,8 @@ export const login = async (
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      // maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 5 * 60 * 1000, // 5 min
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
@@ -288,5 +298,42 @@ export const logout = (_req: Request, res: Response, next: NextFunction) => {
     res.status(200).json({ success: true, message: 'Logged out successfully' });
   } catch (err) {
     next(err);
+  }
+};
+
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: 'No refresh token provided' });
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret!) as DecodedToken;
+
+    // Check decoded content and regenerate access token
+    if (!decoded || !decoded.userId || !decoded.role) {
+      return res.status(403).json({ success: false, message: 'Invalid refresh token payload' });
+    }
+
+    const accessToken = jwt.sign(
+      { id: decoded.userId, role: decoded.role },
+      config.jwt.accessSecret!,
+      { expiresIn: '5m' },
+    );
+
+    // Set new access token in cookie
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 5 * 60 * 1000, // 15 minutes
+    });
+
+    return res.status(200).json({ success: true, message: 'Access token refreshed' });
+  } catch (err) {
+    console.error('Error refreshing token:', err);
+    return res.status(500).json({ success: false, message: 'Server error while refreshing token' });
   }
 };

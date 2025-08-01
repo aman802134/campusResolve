@@ -6,6 +6,7 @@ import {
   getUsers,
   login,
   logout,
+  refreshAccessToken,
   register,
   requestRole,
 } from '../controllers/auth.controller';
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post('/register', upload.single('avatarUrl'), register);
 router.patch('/request-role', authenticate, requestRole);
 router.post('/login', validateRequest(loginSchema), login);
+router.post('/refreshToken', refreshAccessToken);
 router.get('/get-users', authenticate, getUsers);
 router.get(
   '/get-user/:userId',
