@@ -19,10 +19,10 @@ export const register = async (
   res: Response,
   next: NextFunction,
 ) => {
-  console.log("Request body:", req.body);
-    console.log("Request file:", req.file);
-    console.log("Request files:", req.files);
-    console.log("Request headers:", req.headers['content-type']);
+  console.log('Request body:', req.body);
+  console.log('Request file:', req.file);
+  console.log('Request files:', req.files);
+  console.log('Request headers:', req.headers['content-type']);
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -243,13 +243,13 @@ export const login = async (
     // Set secure cookies
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      // secure:   process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      // secure:   process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
