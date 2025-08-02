@@ -2,6 +2,7 @@ import express from 'express';
 import { validateRequest } from '../validations/validate-request';
 import { loginSchema, registerSchema } from '../validations/auth-schema.validation';
 import {
+  authMe,
   getUserById,
   getUsers,
   login,
@@ -18,9 +19,10 @@ import { requestRoleSchema } from '../validations/request-role-validation';
 
 const router = express.Router();
 router.post('/register', upload.single('avatarUrl'), register);
-router.patch('/request-role', authenticate, requestRole);
 router.post('/login', validateRequest(loginSchema), login);
+router.patch('/request-role', authenticate, requestRole);
 router.post('/refreshToken', refreshAccessToken);
+router.post('/me', authenticate, authMe);
 router.get('/get-users', authenticate, getUsers);
 router.get(
   '/get-user/:userId',

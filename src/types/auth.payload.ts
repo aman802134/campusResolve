@@ -67,7 +67,7 @@ export interface User {
 export interface DecodedToken {
   userId: string;
   email: string;
-  role: 'user' | 'admin' | 'campus_admin';
+  role: USER_ROLES;
   iat: number;
   exp: number;
 }

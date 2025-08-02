@@ -92,7 +92,105 @@ export const register = async (
     next(err);
   }
 };
+export const login = async (
+  req: Request<{}, {}, LoginType>,
+  res: Response<AuthResponse>,
+  next: NextFunction,
+) => {
+  try {
+    const { email, password } = req.body;
+    const user = await UserModel.findOne({ email }).lean();
+    if (!user) {
+      throw new ApiError(401, 'email not found');
+    }
+    if (user.isBanned) {
+      throw new ApiError(403, 'Your account is banned');
+    }
 
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      throw new ApiError(401, 'password not matched');
+    }
+
+    // Build JWT payload with all relevant claims
+    const jwtPayload: JwtPayload = {
+      userId: user._id?.toString?.() || '',
+      role: user.role,
+      email: user.email,
+      name: user.name,
+      requestedRole: user.requestedRole,
+      campus: user.campus ? user.campus.toString() : undefined,
+      department: user.department ? user.department.toString() : undefined,
+      status: user.status,
+      verified: user.verified,
+      isBanned: user.isBanned,
+    };
+
+    const accessToken = generateAccessToken(jwtPayload);
+    const refreshToken = generateRefreshToken(jwtPayload);
+
+    // Set secure cookies
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      // maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 5 * 60 * 1000, // 5 min
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Response body mirrors your AuthResponse.user interface
+    res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id as string,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        campus: user.campus ? user.campus.toString() : '',
+        department: user.department ? user.department.toString() : undefined,
+        phone: user.phone,
+        gender: user.gender,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+        verified: user.verified,
+        isBanned: user.isBanned,
+      },
+    });
+  } catch (err: any) {
+    console.error('erro while logging Admin:');
+    console.error(err.message || err);
+    next(err);
+  }
+};
+export const authMe = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.cookies.accessToken;
+    if (!token) {
+      throw new ApiError(401, 'token not found ! please login again');
+    }
+    const decoded = jwt.verify(token, config.jwt.accessSecret!) as DecodedToken;
+    const user = await UserModel.findById(decoded.userId).select('-password');
+    if (!user) {
+      throw new ApiError(404, 'user not found');
+    }
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (err: any) {
+    console.error('erro while logging Admin:');
+    console.error(err.message || err);
+    next(err);
+  }
+};
 /**
  * @desc Request Role Change (after registration)
  */
@@ -209,85 +307,6 @@ export const getUserById = async (req: AuthRequest, res: Response, next: NextFun
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     next(error);
-  }
-};
-
-export const login = async (
-  req: Request<{}, {}, LoginType>,
-  res: Response<AuthResponse>,
-  next: NextFunction,
-) => {
-  try {
-    const { email, password } = req.body;
-    const user = await UserModel.findOne({ email }).lean();
-    if (!user) {
-      throw new ApiError(401, 'email not found');
-    }
-    if (user.isBanned) {
-      throw new ApiError(403, 'Your account is banned');
-    }
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      throw new ApiError(401, 'password not matched');
-    }
-
-    // Build JWT payload with all relevant claims
-    const jwtPayload: JwtPayload = {
-      userId: user._id?.toString?.() || '',
-      role: user.role,
-      email: user.email,
-      name: user.name,
-      requestedRole: user.requestedRole,
-      campus: user.campus ? user.campus.toString() : undefined,
-      department: user.department ? user.department.toString() : undefined,
-      status: user.status,
-      verified: user.verified,
-      isBanned: user.isBanned,
-    };
-
-    const accessToken = generateAccessToken(jwtPayload);
-    const refreshToken = generateRefreshToken(jwtPayload);
-
-    // Set secure cookies
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      // maxAge: 24 * 60 * 60 * 1000, // 1 day
-      maxAge: 5 * 60 * 1000, // 5 min
-    });
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    // Response body mirrors your AuthResponse.user interface
-    res.status(200).json({
-      success: true,
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id as string,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        campus: user.campus ? user.campus.toString() : '',
-        department: user.department ? user.department.toString() : undefined,
-        phone: user.phone,
-        gender: user.gender,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-        verified: user.verified,
-        isBanned: user.isBanned,
-      },
-    });
-  } catch (err: any) {
-    console.error('erro while logging Admin:');
-    console.error(err.message || err);
-    next(err);
   }
 };
 
