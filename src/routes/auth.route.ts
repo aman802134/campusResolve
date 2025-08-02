@@ -22,7 +22,7 @@ router.post('/register', upload.single('avatarUrl'), register);
 router.post('/login', validateRequest(loginSchema), login);
 router.patch('/request-role', authenticate, requestRole);
 router.post('/refreshToken', refreshAccessToken);
-router.post('/me', authenticate, authMe);
+router.get('/me', authenticate, authMe);
 router.get('/get-users', authenticate, getUsers);
 router.get(
   '/get-user/:userId',
