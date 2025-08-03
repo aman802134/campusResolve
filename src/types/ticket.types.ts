@@ -44,10 +44,11 @@ export type TicketResponse = {
     name: string;
   };
   escalated: boolean;
+  resolutionComment: string;
   escalationLevel: number;
   history: Array<{
     updatedBy: {
-      id: string;
+      id: string | unknown;
       name: string;
     };
     previousStatus: TICKET_STATUS;

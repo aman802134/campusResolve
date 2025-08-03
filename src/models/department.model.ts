@@ -4,6 +4,7 @@ import { Schema, model, Document, Types } from 'mongoose';
 export interface IDepartment extends Document {
   name: string;
   campus: Types.ObjectId; // ref to Campus._id
+  departmentCode: string;
   admin: Types.ObjectId | null; // ref to User._id (department_admin)
   domain?: string[]; // e.g. ['hostel','kitchen']
   createdAt: Date;
@@ -22,6 +23,11 @@ const departmentSchema = new Schema<IDepartment>(
       ref: 'Campus',
       required: true,
     },
+    departmentCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     admin: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -36,5 +42,10 @@ const departmentSchema = new Schema<IDepartment>(
     timestamps: true,
   },
 );
+// ✅ Compound index for campus + departmentCode (optional but recommended)
+departmentSchema.index({ campus: 1, departmentCode: 1 }, { unique: true });
+
+// Optional performance index
+departmentSchema.index({ campus: 1 });
 
 export const DepartmentModel = model<IDepartment>('Department', departmentSchema);

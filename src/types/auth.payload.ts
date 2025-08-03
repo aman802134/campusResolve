@@ -7,20 +7,19 @@ export interface RegisterType {
   name: string;
   email: string;
   password: string;
-  campus: string; // required: must refer to a Campus _id
-  department?: string; // optional, based on requested role
+  externalId: string; // required: could be studentId, facultyId, etc.
+  campus: string; // ObjectId as string
+  department?: string; // optional, some roles may not need it
   phone?: string;
   gender?: GENDER;
-  avatarUrl?: string; // optional, can be uploaded later
+  avatarUrl?: string;
 }
 export interface RequestedRoleType {
-  requestedRole: USER_ROLES; // optional, can be used to request a different role
-  campus: string; // required: must refer to a Campus _id
-  department?: string; // optional, based on requested role
+  requestedRole: USER_ROLES;
+  campus: string;
+  department?: string;
 }
-/**
- * Payload for login
- */
+
 export interface LoginType {
   email: string;
   password: string;
@@ -33,37 +32,26 @@ export interface AuthResponse {
   success: boolean;
   accessToken: string;
   refreshToken: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: USER_ROLES; // ✅ Add this
-    requestedRole?: USER_ROLES;
-    campus: string; // ObjectId as string
-    department?: string; // ObjectId as string (optional)
-    phone?: string;
-    gender?: GENDER;
-    avatarUrl?: string;
-    status: USER_STATUS;
-    verified: boolean;
-    isBanned: boolean;
-  };
+  user: User;
 }
+
 export interface User {
-  id: string;
+  id: string | unknown;
   name: string;
   email: string;
-  role: USER_ROLES; // ✅ Add this
-  requestedRole?: USER_ROLES;
-  campus: string; // ObjectId as string
-  department?: string; // ObjectId as string (optional)
+  role: USER_ROLES;
+  externalId: string;
+  campus: string;
+  department?: string;
   phone?: string;
   gender?: GENDER;
   avatarUrl?: string;
   status: USER_STATUS;
   verified: boolean;
   isBanned: boolean;
+  requestedRole?: USER_ROLES;
 }
+
 export interface DecodedToken {
   userId: string;
   email: string;
@@ -71,6 +59,7 @@ export interface DecodedToken {
   iat: number;
   exp: number;
 }
+
 /**
  * JWT payload embedded in token
  */
@@ -78,13 +67,13 @@ export interface JwtPayload {
   userId: string;
   email: string;
   name: string;
-  // Note: `role` is required for access control
-  role: USER_ROLES; // ✅ Required for access control
-  requestedRole?: USER_ROLES; // Optional – only present if role upgrade is pending
-  campus?: string; // ObjectId as string
-  department?: string; // ObjectId as string
+  role: USER_ROLES;
+  externalId: string;
+  campus?: string;
+  department?: string;
   status: USER_STATUS;
   verified: boolean;
   isBanned: boolean;
   avatarUrl?: string;
+  requestedRole?: USER_ROLES;
 }

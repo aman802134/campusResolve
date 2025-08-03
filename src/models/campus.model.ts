@@ -4,6 +4,7 @@ import { Schema, model, Document, Types } from 'mongoose';
 export interface ICampus extends Document {
   name: string;
   location: string;
+  campusCode: string;
   admins: Types.ObjectId[]; // references to User._id
   createdAt: Date;
   updatedAt: Date;
@@ -21,6 +22,12 @@ const campusSchema = new Schema<ICampus>(
       type: String,
       required: true,
       trim: true,
+    },
+    campusCode: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
     },
     admins: [
       {

@@ -6,6 +6,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  externalId: string;
   role: USER_ROLES;
   requestedRole?: USER_ROLES;
   roleRequestStatus?: ROLE_REQUEST_STATUS;
@@ -36,7 +37,13 @@ const userSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
     },
-
+    externalId: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
     password: {
       type: String,
       required: true,
@@ -46,8 +53,6 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      default: USER_ROLES.STUDENT,
-      required: true,
     },
 
     requestedRole: {

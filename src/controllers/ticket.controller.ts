@@ -18,16 +18,18 @@ export const createTicket = async (req: AuthRequest, res: Response, next: NextFu
     if (!userId) throw new ApiError(401, 'Unauthorized');
 
     const payload: CreateTicketPayload = req.body;
-    // Derive campus from JWT claims to avoid spoofing
-    if (userRole === 'student' && payload.campus !== userCampus) {
-      throw new ApiError(403, 'you can submit the complain to your campus only');
+    if (!payload.title || !payload.description || !payload.department || !payload.campus) {
+      throw new ApiError(400, 'Missing required fields: title, description, department, campus');
     }
+
+    if (userRole === USER_ROLES.STUDENT && payload.campus !== userCampus) {
+      throw new ApiError(403, 'You can submit the complaint to your campus only');
+    }
+
     const department = await DepartmentModel.findById(payload.department);
-    console.log('department.campus:', department?.campus.toString());
-    console.log('payload.campus:', payload.campus);
-    // if (!department || department.campus.toString() !== payload.campus) {
-    //   throw new ApiError(403, 'selected department is not part of your campus');
-    // }
+    if (!department || department.campus.toString() !== payload.campus) {
+      throw new ApiError(403, 'Selected department is not part of your campus');
+    }
 
     const ticket = await TicketModel.create({
       title: payload.title,
@@ -39,7 +41,6 @@ export const createTicket = async (req: AuthRequest, res: Response, next: NextFu
       isSensitive: payload.isSensitive || false,
       attachments: payload.attachments || [],
       createdBy: userId,
-      // status, escalated, escalationLevel, history auto‑defaulted
     });
 
     res.status(201).json({
@@ -61,7 +62,7 @@ export const getUserTickets = async (req: AuthRequest, res: Response, next: Next
     const tickets = await TicketModel.find({ createdBy: userId })
       .populate('assignedTo', 'name')
       .populate('department', 'name')
-      .populate('campus', 'name');
+      .populate('campus', 'name campusCode');
 
     res.status(200).json({
       success: true,
@@ -77,16 +78,16 @@ export const getUserTickets = async (req: AuthRequest, res: Response, next: Next
 export const getAllTickets = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { role, campus } = req.user!;
-    if (!['campus_admin', 'super_admin'].includes(role)) {
+    if (![USER_ROLES.CAMPUS_ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)) {
       throw new ApiError(403, 'Forbidden');
     }
 
-    // super-admin can optionally pass ?campus=ID to filter; else uses their claim
     const campusFilter = (req.query.campus as string) || campus;
     const tickets = await TicketModel.find({ campus: campusFilter })
       .populate('createdBy', 'name')
       .populate('assignedTo', 'name')
-      .populate('department', 'name');
+      .populate('department', 'name')
+      .populate('campus', 'name campusCode');
 
     res.status(200).json({
       success: true,
@@ -110,14 +111,16 @@ export const getTicketById = async (req: AuthRequest, res: Response, next: NextF
       .populate('createdBy', 'name')
       .populate('assignedTo', 'name')
       .populate('department', 'name')
-      .populate('campus', 'name');
+      .populate('campus', 'name campusCode');
 
     if (!ticket) {
       throw new ApiError(404, 'Ticket not found');
     }
 
-    // Students can only view their own tickets
-    if (req.user!.role === 'student' && ticket.createdBy._id.toString() !== req.user!.userId) {
+    if (
+      req.user!.role === USER_ROLES.STUDENT &&
+      ticket.createdBy._id.toString() !== req.user!.userId
+    ) {
       throw new ApiError(403, 'Forbidden');
     }
 
@@ -131,13 +134,11 @@ export const getTicketById = async (req: AuthRequest, res: Response, next: NextF
   }
 };
 
-// Update status and/or assignee, logging history
+// Update ticket status or assignee
 export const updateTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const ticketId = req.params.ticketId;
-    console.log('ticketId for updation:', JSON.stringify(ticketId)); // Debug: show exact value
     const payload: UpdateTicketPayload = req.body;
-    console.log(payload.assignedToId);
 
     if (!mongoose.Types.ObjectId.isValid(ticketId)) {
       throw new ApiError(400, `Invalid ticket ID: ${ticketId}`);
@@ -145,9 +146,8 @@ export const updateTicket = async (req: AuthRequest, res: Response, next: NextFu
     const ticket = await TicketModel.findById(ticketId);
     if (!ticket) throw new ApiError(404, 'Ticket not found');
 
-    // Only allow role-based updates:
     const { role, userId } = req.user!;
-    if (role === 'student') {
+    if (role === USER_ROLES.STUDENT) {
       throw new ApiError(403, 'Students cannot update tickets');
     }
 
@@ -159,7 +159,6 @@ export const updateTicket = async (req: AuthRequest, res: Response, next: NextFu
       comment: payload.comment || '',
     };
 
-    // Apply updates
     if (payload.status) ticket.status = payload.status;
     if (payload.assignedToId) ticket.assignedTo = payload.assignedToId as any;
     ticket.history.push(historyEntry);
@@ -176,7 +175,7 @@ export const updateTicket = async (req: AuthRequest, res: Response, next: NextFu
   }
 };
 
-// Escalate a ticket (faculty → dept‑admin or dept‑admin → campus‑admin)
+// Escalate a ticket
 export const escalateTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const ticketId = req.params.ticketId;
@@ -186,17 +185,20 @@ export const escalateTicket = async (req: AuthRequest, res: Response, next: Next
     const ticket = await TicketModel.findById(ticketId);
     if (!ticket) throw new ApiError(404, 'Ticket not found');
 
-    // Allow campus_admin, department_admin, and super_admin to escalate
     const { role, userId } = req.user!;
-    if (!['campus_admin', 'department_admin', 'super_admin'].includes(role)) {
+    if (
+      ![USER_ROLES.CAMPUS_ADMIN, USER_ROLES.DEPARTMENT_ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)
+    ) {
       throw new ApiError(403, 'Forbidden');
+    }
+
+    if ((ticket.escalationLevel || 0) >= 4) {
+      throw new ApiError(400, 'Maximum escalation level reached, cannot escalate further');
     }
 
     ticket.escalated = true;
     ticket.escalationLevel = (ticket.escalationLevel || 0) + 1;
-    if (ticket.escalationLevel > 4) {
-      throw new ApiError(400, 'Maximum escalation level reached , you cannot escalate further');
-    }
+    ticket.status = TICKET_STATUS.Escalated;
     ticket.history.push({
       updatedBy: new mongoose.Types.ObjectId(userId),
       previousStatus: ticket.status,
@@ -204,7 +206,6 @@ export const escalateTicket = async (req: AuthRequest, res: Response, next: Next
       comment: 'Escalated by ' + role,
       date: new Date(),
     });
-    ticket.status = TICKET_STATUS.Escalated;
 
     await ticket.save();
 

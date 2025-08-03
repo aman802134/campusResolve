@@ -1,5 +1,5 @@
 // controllers/department.controller.ts
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { DepartmentModel } from '../models/department.model';
 import { CreateDepartmentPayload } from '../types/department.types';
 import { ApiError } from '../utils/api-error';
@@ -7,40 +7,49 @@ import { AuthRequest } from '../types/request';
 import { USER_ROLES } from '../types/enums';
 import mongoose from 'mongoose';
 
+/**
+ * @desc Create a new department
+ * @access super_admin only
+ */
 export const createDepartment = async (req: AuthRequest, res: Response) => {
   try {
-    const payload: CreateDepartmentPayload = req.body;
+    if (req.user?.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(403, 'Only super admin can create departments');
+    }
 
-    if (!payload.name || !payload.campus) {
-      throw new ApiError(400, 'department and campus name missing');
+    const {
+      name,
+      campus,
+      departmentCode,
+      adminId,
+      domain = [],
+    }: CreateDepartmentPayload = req.body;
+
+    if (!name || !campus || !departmentCode) {
+      throw new ApiError(400, 'Department name, campus, and departmentCode are required');
     }
-    const existing = await DepartmentModel.findOne({ name: payload.name });
+
+    const existing = await DepartmentModel.findOne({
+      $or: [{ name }, { departmentCode }],
+    });
     if (existing) {
-      throw new ApiError(409, 'department already exists');
+      throw new ApiError(409, 'Department with this name or code already exists');
     }
-    if (req.user!.role != USER_ROLES.SUPER_ADMIN) {
-      throw new ApiError(403, "you don't have permission to create department");
-    }
-    const departmentData: {
-      name: string;
-      domain?: string[];
-      campus: mongoose.Types.ObjectId;
-      admin?: mongoose.Types.ObjectId;
-    } = {
-      name: payload.name,
-      campus: new mongoose.Types.ObjectId(payload.campus),
+
+    const departmentData = {
+      name,
+      departmentCode,
+      domain,
+      campus: new mongoose.Types.ObjectId(campus),
+      ...(adminId && { admin: new mongoose.Types.ObjectId(adminId) }),
     };
 
-    if (payload.adminId) {
-      departmentData.admin = new mongoose.Types.ObjectId(payload.adminId);
-    }
-
-    await DepartmentModel.create(departmentData);
+    const department = await DepartmentModel.create(departmentData);
 
     res.status(201).json({
       success: true,
       message: 'Department created successfully',
-      data: departmentData,
+      data: department,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -51,9 +60,15 @@ export const createDepartment = async (req: AuthRequest, res: Response) => {
   }
 };
 
+/**
+ * @desc Get all departments
+ * @access authenticated users
+ */
 export const getDepartments = async (req: AuthRequest, res: Response) => {
   try {
-    const departments = await DepartmentModel.find();
+    const departments = await DepartmentModel.find()
+      .populate('admin', 'name email')
+      .populate('campus', 'name campusCode');
     res.status(200).json({
       success: true,
       message: 'Departments fetched successfully',
@@ -67,16 +82,27 @@ export const getDepartments = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+/**
+ * @desc Get a department by ID
+ * @access authenticated users
+ */
 export const getDepartmentById = async (req: AuthRequest, res: Response) => {
   try {
     const departmentId = req.params.departmentId;
+
     if (!mongoose.Types.ObjectId.isValid(departmentId)) {
       throw new ApiError(400, 'Invalid department ID');
     }
-    const department = await DepartmentModel.findById(departmentId);
+
+    const department = await DepartmentModel.findById(departmentId)
+      .populate('admin', 'name email')
+      .populate('campus', 'name campusCode');
+
     if (!department) {
       throw new ApiError(404, 'Department not found');
     }
+
     res.status(200).json({
       success: true,
       message: 'Department fetched successfully',
@@ -90,26 +116,35 @@ export const getDepartmentById = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+/**
+ * @desc Update department domain list
+ * @access campus_admin or department_admin (own department/campus only)
+ */
 export const updateDomain = async (req: AuthRequest, res: Response) => {
   try {
     const departmentId = req.params.departmentId;
     const { domain } = req.body;
+
     if (!Array.isArray(domain) || domain.length === 0) {
       throw new ApiError(400, 'Invalid or missing domain list');
     }
+
     const department = await DepartmentModel.findById(departmentId).populate('campus');
     if (!department) {
       throw new ApiError(404, 'Department not found');
     }
+
     const user = req.user!;
 
     const isDeptAdmin =
       user.role === USER_ROLES.DEPARTMENT_ADMIN && department.admin?.toString() === user.userId;
+
     const isCampusAdmin =
       user.role === USER_ROLES.CAMPUS_ADMIN && department.campus?._id.toString() === user.campus;
 
     if (!isDeptAdmin && !isCampusAdmin) {
-      throw new ApiError(403, 'You do not have permission to update domains');
+      throw new ApiError(403, 'You do not have permission to update department domains');
     }
 
     department.domain = domain;

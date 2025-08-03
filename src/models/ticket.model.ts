@@ -15,6 +15,7 @@ export interface ITicket extends Document {
   isSensitive: boolean;
   attachments: string[];
   escalated: boolean;
+  resolutionComment: string;
   escalationLevel: number;
   history: Array<{
     updatedBy: Types.ObjectId;
@@ -50,7 +51,7 @@ const ticketSchema = new Schema<ITicket>(
     },
     domain: {
       type: String,
-      required: true,
+      default: null,
     },
     createdBy: {
       type: Schema.Types.ObjectId,
@@ -84,6 +85,11 @@ const ticketSchema = new Schema<ITicket>(
       type: Boolean,
       default: false,
     },
+    resolutionComment: {
+      type: String,
+      default: '',
+    },
+
     escalationLevel: {
       type: Number,
       default: 0,

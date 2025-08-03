@@ -1,15 +1,15 @@
-// controllers/auth.controller.ts
+// Fixed and updated based on our architecture
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { UserModel } from '../models/user.model';
+import { VerificationModel } from '../models/verification.model';
 import { ApiError } from '../utils/api-error';
 import {
   RegisterType,
   LoginType,
   AuthResponse,
   JwtPayload,
-  User,
   DecodedToken,
 } from '../types/auth.payload';
 import { generateAccessToken, generateRefreshToken } from '../utils/token-creator';
@@ -20,18 +20,12 @@ import { registerSchema } from '../validations/auth-schema.validation';
 import { requestRoleSchema } from '../validations/request-role-validation';
 import mongoose from 'mongoose';
 import { config } from '../config/config';
-/**
- * @desc Register a new user
- */
+
 export const register = async (
   req: Request<{}, {}, RegisterType>,
   res: Response,
   next: NextFunction,
 ) => {
-  console.log('Request body:', req.body);
-  console.log('Request file:', req.file);
-  console.log('Request files:', req.files);
-  console.log('Request headers:', req.headers['content-type']);
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -47,7 +41,6 @@ export const register = async (
 
     const payload = parsed.data;
 
-    // Handle avatar upload
     let avatarUrl = null;
     if (req.file?.path) {
       avatarUrl = req.file.path;
@@ -61,7 +54,6 @@ export const register = async (
     if (!uploadResult || uploadResult.msg) {
       throw new ApiError(500, 'Image upload failed: ' + (uploadResult.msg || 'Unknown error'));
     }
-
     const imageUrl = uploadResult.url;
 
     const existing = await UserModel.findOne({ email: payload.email });
@@ -69,23 +61,37 @@ export const register = async (
       throw new ApiError(409, 'Email already in use');
     }
 
+    // Verify against pre-seeded verification data
+    const match = await VerificationModel.findOne({
+      email: payload.email,
+      externalId: payload.externalId,
+      campus: new mongoose.Types.ObjectId(payload.campus),
+      ...(payload.department && { department: new mongoose.Types.ObjectId(payload.department) }),
+    });
+
+    if (!match) {
+      throw new ApiError(403, 'Verification failed: user not found in university records');
+    }
+
     const hashedPassword = await bcrypt.hash(payload.password, 10);
 
     const newUser = await UserModel.create({
       ...payload,
-      avatarUrl: imageUrl,
       password: hashedPassword,
-      role: USER_ROLES.STUDENT, // 🔐 Only assign student by default
+      role: match.role, // ✅ Assign role from verification record
+      campus: match.campus,
+      department: match.department,
+      avatarUrl: imageUrl,
       roleRequestStatus: null,
       requestedRole: null,
-      status: USER_STATUS.PENDING,
-      verified: false,
+      status: USER_STATUS.ACTIVE,
+      verified: true,
       isBanned: false,
     });
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'User registered and verified successfully',
       userId: newUser._id,
     });
   } catch (err) {
@@ -99,44 +105,52 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
-    const user = await UserModel.findOne({ email }).lean();
+
+    const user = await UserModel.findOne({ email });
+
     if (!user) {
-      throw new ApiError(401, 'email not found');
+      throw new ApiError(401, 'Email not found');
     }
+
     if (user.isBanned) {
       throw new ApiError(403, 'Your account is banned');
     }
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      throw new ApiError(401, 'password not matched');
+    if (!user.verified || user.status !== USER_STATUS.ACTIVE) {
+      throw new ApiError(403, 'Your account is not verified or active yet');
     }
 
-    // Build JWT payload with all relevant claims
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      throw new ApiError(401, 'Password is incorrect');
+    }
+
     const jwtPayload: JwtPayload = {
       userId: user._id?.toString?.() || '',
-      role: user.role,
-      email: user.email,
       name: user.name,
-      requestedRole: user.requestedRole,
-      campus: user.campus ? user.campus.toString() : undefined,
-      department: user.department ? user.department.toString() : undefined,
+      email: user.email,
+      externalId: user.externalId,
+      role: user.role,
+      requestedRole: user.requestedRole || undefined,
+      campus: user.campus?.toString(),
+      department: user.department?.toString(),
       status: user.status,
       verified: user.verified,
       isBanned: user.isBanned,
+      avatarUrl: user.avatarUrl || '',
     };
 
     const accessToken = generateAccessToken(jwtPayload);
     const refreshToken = generateRefreshToken(jwtPayload);
 
-    // Set secure cookies
+    // Set HTTP-only secure cookies
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      // maxAge: 24 * 60 * 60 * 1000, // 1 day
-      maxAge: 5 * 60 * 1000, // 5 min
+      maxAge: 5 * 60 * 1000, // 5 minutes
     });
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: true,
@@ -144,29 +158,30 @@ export const login = async (
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Response body mirrors your AuthResponse.user interface
+    // Auth response
     res.status(200).json({
       success: true,
       accessToken,
       refreshToken,
       user: {
-        id: user._id as string,
+        id: user._id,
         name: user.name,
         email: user.email,
+        externalId: user.externalId,
         role: user.role,
-        campus: user.campus ? user.campus.toString() : '',
-        department: user.department ? user.department.toString() : undefined,
-        phone: user.phone,
+        requestedRole: user.requestedRole || undefined,
+        campus: user.campus?.toString() || '',
+        department: user.department?.toString(),
+        phone: user.phone || '',
         gender: user.gender,
-        avatarUrl: user.avatarUrl,
+        avatarUrl: user.avatarUrl || '',
         status: user.status,
         verified: user.verified,
         isBanned: user.isBanned,
       },
     });
   } catch (err: any) {
-    console.error('erro while logging Admin:');
-    console.error(err.message || err);
+    console.error('Error during login:', err.message || err);
     next(err);
   }
 };

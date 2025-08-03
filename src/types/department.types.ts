@@ -1,20 +1,31 @@
 export type CreateDepartmentPayload = {
   name: string;
+  departmentCode: string; // ✅ required for verification/uniqueness
   campus: string; // Campus._id
   adminId?: string; // User._id of the department_admin
   domain?: string[]; // e.g. ['hostel','kitchen']
 };
+
 export type UpdateDepartmentPayload = {
   name?: string;
-  campusId?: string;
+  departmentCode?: string; // ✅ allow updating if needed
+  campus?: string; // consistent with CreateDepartmentPayload
   adminId?: string;
-  domain?: string[]; // optional and replaces the domains array if provided
+  domain?: string[]; // optional, replaces domain list if provided
 };
+
 export type DepartmentResponse = {
-  id: string;
+  id: string; // Department._id
   name: string;
-  campus: { id: string; name: string };
-  admin?: { id: string; name: string }; // made optional in case department has no admin yet
+  departmentCode: string; // ✅ expose to frontend if needed
+  campus: {
+    id: string;
+    name: string;
+  };
+  admin?: {
+    id: string;
+    name: string;
+  };
   domain: string[];
   createdAt: string;
   updatedAt: string;
