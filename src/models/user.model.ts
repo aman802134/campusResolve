@@ -39,7 +39,9 @@ const userSchema = new Schema<IUser>(
     },
     externalId: {
       type: String,
-      required: true,
+      required: function () {
+        return this.role !== USER_ROLES.SUPER_ADMIN;
+      },
       unique: true,
       lowercase: true,
       trim: true,
@@ -63,7 +65,10 @@ const userSchema = new Schema<IUser>(
     roleRequestStatus: {
       type: String,
       enum: Object.values(ROLE_REQUEST_STATUS),
-      default: ROLE_REQUEST_STATUS.PENDING, // or ROLE_REQUEST_STATUS.PENDING if you want
+      default: function (this: any) {
+        // Only assign "pending" if it's not a Super Admin
+        return this.role === 'super_admin' ? undefined : ROLE_REQUEST_STATUS.PENDING;
+      },
     },
     campus: {
       type: Schema.Types.ObjectId,
