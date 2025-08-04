@@ -30,10 +30,17 @@ export const createDepartment = async (req: AuthRequest, res: Response) => {
     }
 
     const existing = await DepartmentModel.findOne({
-      $or: [{ name }, { departmentCode }],
+      name: name,
+      campus: campus,
     });
-    if (existing) {
-      throw new ApiError(409, 'Department with this name or code already exists');
+
+    const existingCode = await DepartmentModel.findOne({
+      departmentCode: departmentCode,
+      campus: campus,
+    });
+
+    if (existing || existingCode) {
+      throw new ApiError(409, 'Department with this name or code already exists in this campus');
     }
 
     const departmentData = {

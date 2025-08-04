@@ -1,0 +1,20 @@
+{
+    "name": "Electrical Engineering Department",
+    "departmentCode": "EEE",
+    "campus": "688fd5cff2bb1f470d43a687"
+  },
+  {
+    "name": "Artificial Intelligence Department",
+    "departmentCode": "AI",
+    "campus": "688fd5cff2bb1f470d43a687"
+  },
+  {
+    "name": "Cybersecurity Department",
+    "departmentCode": "CYB",
+    "campus": "688fd5cff2bb1f470d43a687"
+  },
+  {
+    "name": "Data Science Department",
+    "departmentCode": "DS",
+    "campus": "688fd5cff2bb1f470d43a687"
+  }
