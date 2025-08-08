@@ -52,14 +52,6 @@ export interface User {
   requestedRole?: USER_ROLES;
 }
 
-export interface DecodedToken {
-  userId: string;
-  email: string;
-  role: USER_ROLES;
-  iat: number;
-  exp: number;
-}
-
 /**
  * JWT payload embedded in token
  */
@@ -76,4 +68,7 @@ export interface JwtPayload {
   isBanned: boolean;
   avatarUrl?: string;
   requestedRole?: USER_ROLES;
+}
+export interface DecodedToken extends JwtPayload {
+  id: string;
 }

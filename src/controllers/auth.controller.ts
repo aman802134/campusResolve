@@ -142,13 +142,12 @@ export const login = async (
 
     const accessToken = generateAccessToken(jwtPayload);
     const refreshToken = generateRefreshToken(jwtPayload);
-
     // Set HTTP-only secure cookies
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      maxAge: 5 * 60 * 1000, // 5 minutes
+      maxAge: 1 * 60 * 1000, // 5 minutes
     });
 
     res.cookie('refreshToken', refreshToken, {
@@ -185,14 +184,18 @@ export const login = async (
     next(err);
   }
 };
-export const authMe = async (req: Request, res: Response, next: NextFunction) => {
+export const authMe = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  console.log('Access Token Payload:', req.user);
   try {
     const token = req.cookies.accessToken;
     if (!token) {
       throw new ApiError(401, 'token not found ! please login again');
     }
     const decoded = jwt.verify(token, config.jwt.accessSecret!) as DecodedToken;
-    const user = await UserModel.findById(decoded.userId).select('-password');
+    // if (typeof decoded === 'string') {
+    //   throw new ApiError(401, 'Invalid token format');
+    // }
+    const user = await UserModel.findById(decoded.id).select('-password');
     if (!user) {
       throw new ApiError(404, 'user not found');
     }
@@ -362,7 +365,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      maxAge: 5 * 60 * 1000, // 15 minutes
+      maxAge: 1 * 60 * 1000, // 15 minutes
     });
 
     return res.status(200).json({ success: true, message: 'Access token refreshed' });
