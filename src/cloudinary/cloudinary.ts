@@ -11,7 +11,7 @@ const uploadImage = async (filePath: string) => {
     });
     console.log('response', response.url);
     fs.unlinkSync(filePath);
-    return { url: response.url };
+    return { url: response.secure_url };
   } catch (error) {
     fs.unlinkSync(filePath);
     return { msg: error };
