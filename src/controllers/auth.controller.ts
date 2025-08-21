@@ -195,7 +195,7 @@ export const authMe = async (req: AuthRequest, res: Response, next: NextFunction
     // if (typeof decoded === 'string') {
     //   throw new ApiError(401, 'Invalid token format');
     // }
-    const user = await UserModel.findById(decoded.id).select('-password');
+    const user = await UserModel.findById(decoded.userId).select('-password');
     if (!user) {
       throw new ApiError(404, 'user not found');
     }
