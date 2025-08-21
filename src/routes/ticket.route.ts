@@ -17,13 +17,8 @@ import { USER_ROLES } from '../types/enums';
 import upload from '../multer/multer.middleware';
 
 const router = express.Router();
-router.post(
-  '/create-ticket',
-  authenticate,
-  validateRequest(createTicketSchema),
-  upload.array('attachments'),
-  createTicket,
-);
+
+router.post('/create-ticket', authenticate, upload.array('attachments'), createTicket);
 router.get('/all/:userId', authenticate, getUserTickets);
 router.get('/:id', authenticate, getTicketById);
 router.patch(

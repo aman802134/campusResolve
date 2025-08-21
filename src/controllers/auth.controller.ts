@@ -15,11 +15,11 @@ import {
 import { generateAccessToken, generateRefreshToken } from '../utils/token-creator';
 import { ROLE_REQUEST_STATUS, USER_ROLES, USER_STATUS } from '../types/enums';
 import { AuthRequest } from '../types/request';
-import uploadImage from '../cloudinary/cloudinary';
 import { registerSchema } from '../validations/auth-schema.validation';
 import { requestRoleSchema } from '../validations/request-role-validation';
 import mongoose from 'mongoose';
 import { config } from '../config/config';
+import uploadFile from '../cloudinary/cloudinary';
 
 export const register = async (
   req: Request<{}, {}, RegisterType>,
@@ -50,7 +50,7 @@ export const register = async (
       return res.status(400).json({ error: 'No avatar file uploaded or URL provided' });
     }
 
-    const uploadResult = await uploadImage(avatarUrl);
+    const uploadResult = await uploadFile(avatarUrl);
     if (!uploadResult || uploadResult.msg) {
       throw new ApiError(500, 'Image upload failed: ' + (uploadResult.msg || 'Unknown error'));
     }
@@ -355,7 +355,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     }
 
     const accessToken = jwt.sign(
-      { id: decoded.userId, role: decoded.role },
+      { userId: decoded.userId, role: decoded.role, campus: decoded.campus },
       config.jwt.accessSecret!,
       { expiresIn: '5m' },
     );

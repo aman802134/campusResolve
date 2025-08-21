@@ -12,7 +12,7 @@ export interface ITicket extends Document {
   assignedTo?: Types.ObjectId | null;
   status: TICKET_STATUS;
   priority: PRIORITY;
-  isSensitive: boolean;
+  isSensitive: String;
   attachments: string[];
   escalated: boolean;
   resolutionComment: string;
@@ -74,7 +74,7 @@ const ticketSchema = new Schema<ITicket>(
       default: PRIORITY.low,
     },
     isSensitive: {
-      type: Boolean,
+      type: String,
       default: false,
     },
     attachments: {

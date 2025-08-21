@@ -12,10 +12,7 @@ export const createTicketSchema = z.object({
   // priority is optional, defaults to 'low' server-side
   priority: z.enum([PRIORITY.low, PRIORITY.medium, PRIORITY.high, PRIORITY.critical]).optional(),
 
-  isSensitive: z.boolean().optional(),
-
-  attachments: z.array(z.string().url({ message: 'Attachment must be a valid URL' })).optional(), // Optionally validate with regex if it's a file/URL
-
+  isSensitive: z.string().optional(),
   escalated: z.boolean().optional(),
   escalationLevel: z.number().int().min(0).max(4).optional(),
 

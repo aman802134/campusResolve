@@ -7,17 +7,50 @@ import { ApiError } from '../utils/api-error';
 import { TicketModel } from '../models/ticket.model';
 import mongoose from 'mongoose';
 import { DepartmentModel } from '../models/department.model';
+import { createTicketSchema } from '../validations/ticket-schema.validation';
+import uploadFile from '../cloudinary/cloudinary';
 
 // Create a new ticket (student or any role that can submit)
 export const createTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  console.log('userId from ticket', req.user);
   try {
+    const parsed = createTicketSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((err) => ({
+          field: err.path.join('.'),
+          message: err.message,
+        })),
+      });
+    }
+
+    const payload = parsed.data;
+    let attachments: string[] = [];
+    if (Array.isArray(req.files)) {
+      attachments = req.files.map((file: Express.Multer.File) => file.path);
+    }
+
+    if (attachments.length === 0) {
+      return res.status(400).json({ error: 'No file uploaded or URL provided' });
+    }
+    const uploadResults = await Promise.all(
+      attachments.map(async (filePath) => {
+        const result = await uploadFile(filePath);
+        return result.url;
+      }),
+    );
+    if (!uploadResults) {
+      throw new ApiError(500, 'File or image upload failed: ');
+    }
+    const fileUrl = uploadResults;
     const userId = req.user?.userId;
     const userCampus = req.user?.campus;
     const userRole = req.user?.role;
 
     if (!userId) throw new ApiError(401, 'Unauthorized');
 
-    const payload: CreateTicketPayload = req.body;
     if (!payload.title || !payload.description || !payload.department || !payload.campus) {
       throw new ApiError(400, 'Missing required fields: title, description, department, campus');
     }
@@ -39,7 +72,7 @@ export const createTicket = async (req: AuthRequest, res: Response, next: NextFu
       domain: payload.domain || null,
       priority: payload.priority || undefined,
       isSensitive: payload.isSensitive || false,
-      attachments: payload.attachments || [],
+      attachments: fileUrl || [],
       createdBy: userId,
     });
 
