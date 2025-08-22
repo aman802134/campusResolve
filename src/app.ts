@@ -9,6 +9,7 @@ import { ticketRoute } from './routes/ticket.route';
 import { departmentRoute } from './routes/department.route';
 import { campusRoute } from './routes/campus.route';
 import { assingAdmin } from './routes/assign-admin.route';
+import { verifiedUser } from './routes/verified-user.route';
 
 const app: Application = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use('/api/v1/auth', authRoute);
+app.use('/api/v1/verification', verifiedUser);
 app.use('/api/v1/ticket', ticketRoute);
 app.use('/api/v1/department', departmentRoute);
 app.use('/api/v1/campus', campusRoute);

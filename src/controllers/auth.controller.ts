@@ -98,6 +98,7 @@ export const register = async (
     next(err);
   }
 };
+
 export const login = async (
   req: Request<{}, {}, LoginType>,
   res: Response<AuthResponse>,
@@ -184,6 +185,17 @@ export const login = async (
     next(err);
   }
 };
+
+export const logout = (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.clearCookie('accessToken', { httpOnly: true, sameSite: 'strict' });
+    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict' });
+    res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const authMe = async (req: AuthRequest, res: Response, next: NextFunction) => {
   console.log('Access Token Payload:', req.user);
   try {
@@ -207,6 +219,43 @@ export const authMe = async (req: AuthRequest, res: Response, next: NextFunction
     console.error('erro while logging Admin:');
     console.error(err.message || err);
     next(err);
+  }
+};
+
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: 'No refresh token provided' });
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret!) as DecodedToken;
+
+    // Check decoded content and regenerate access token
+    if (!decoded || !decoded.userId || !decoded.role) {
+      return res.status(403).json({ success: false, message: 'Invalid refresh token payload' });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: decoded.userId, role: decoded.role, campus: decoded.campus },
+      config.jwt.accessSecret!,
+      { expiresIn: '5m' },
+    );
+
+    // Set new access token in cookie
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 1 * 60 * 1000, // 15 minutes
+    });
+
+    return res.status(200).json({ success: true, message: 'Access token refreshed' });
+  } catch (err) {
+    console.error('Error refreshing token:', err);
+    return res.status(500).json({ success: false, message: 'Server error while refreshing token' });
   }
 };
 /**
@@ -325,52 +374,5 @@ export const getUserById = async (req: AuthRequest, res: Response, next: NextFun
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     next(error);
-  }
-};
-
-export const logout = (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    res.clearCookie('accessToken', { httpOnly: true, sameSite: 'strict' });
-    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict' });
-    res.status(200).json({ success: true, message: 'Logged out successfully' });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const refreshAccessToken = async (req: Request, res: Response) => {
-  try {
-    const refreshToken = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      return res.status(401).json({ success: false, message: 'No refresh token provided' });
-    }
-
-    // Verify the refresh token
-    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret!) as DecodedToken;
-
-    // Check decoded content and regenerate access token
-    if (!decoded || !decoded.userId || !decoded.role) {
-      return res.status(403).json({ success: false, message: 'Invalid refresh token payload' });
-    }
-
-    const accessToken = jwt.sign(
-      { userId: decoded.userId, role: decoded.role, campus: decoded.campus },
-      config.jwt.accessSecret!,
-      { expiresIn: '5m' },
-    );
-
-    // Set new access token in cookie
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 1 * 60 * 1000, // 15 minutes
-    });
-
-    return res.status(200).json({ success: true, message: 'Access token refreshed' });
-  } catch (err) {
-    console.error('Error refreshing token:', err);
-    return res.status(500).json({ success: false, message: 'Server error while refreshing token' });
   }
 };

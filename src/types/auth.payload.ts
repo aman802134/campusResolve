@@ -14,6 +14,21 @@ export interface RegisterType {
   gender?: GENDER;
   avatarUrl?: string;
 }
+export interface VerificationType {
+  externalId: string;
+  name: string;
+  email: string;
+  role: string;
+  campus: string;
+  department: string;
+}
+export interface UpdateVerificationType {
+  externalId?: string;
+  name?: string;
+  email?: string;
+  campus?: string;
+  department?: string;
+}
 export interface RequestedRoleType {
   requestedRole: USER_ROLES;
   campus: string;
