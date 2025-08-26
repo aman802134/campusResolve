@@ -16,7 +16,15 @@ export const createCampus = async (req: AuthRequest, res: Response, next: NextFu
       throw new ApiError(403, 'Only super admin can perform this action');
     }
 
-    const { name, location, campusCode, adminIds = [] }: CreateCampusPayload = req.body;
+    const {
+      name,
+      address,
+      city,
+      state,
+      pinCode,
+      campusCode,
+      adminIds = [],
+    }: CreateCampusPayload = req.body;
 
     if (!name || !location || !campusCode) {
       throw new ApiError(400, 'Name, location and campusCode are required');
@@ -32,7 +40,10 @@ export const createCampus = async (req: AuthRequest, res: Response, next: NextFu
 
     const campus = await CampusModel.create({
       name,
-      location,
+      address,
+      city,
+      state,
+      pinCode,
       campusCode,
       admins: adminIds.map((id) => new mongoose.Types.ObjectId(id)),
     });
@@ -58,7 +69,8 @@ export const updateCampus = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     const campusId = req.params.campusId;
-    const { name, location, campusCode, adminIds }: UpdateCampusPayload = req.body;
+    const { name, address, city, state, pinCode, campusCode, adminIds }: UpdateCampusPayload =
+      req.body;
 
     const campus = await CampusModel.findById(campusId);
     if (!campus) {
@@ -66,7 +78,10 @@ export const updateCampus = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     if (name) campus.name = name;
-    if (location) campus.location = location;
+    if (address) campus.address = address;
+    if (city) campus.city = city;
+    if (state) campus.state = state;
+    if (pinCode) campus.pinCode = pinCode;
     if (campusCode) campus.campusCode = campusCode;
     if (adminIds) campus.admins = adminIds.map((id) => new mongoose.Types.ObjectId(id));
 
