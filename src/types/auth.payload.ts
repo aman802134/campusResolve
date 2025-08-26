@@ -20,7 +20,7 @@ export interface VerificationType {
   email: string;
   role: string;
   campus: string;
-  department: string;
+  department?: string;
 }
 export interface UpdateVerificationType {
   externalId?: string;

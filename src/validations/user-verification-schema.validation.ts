@@ -14,7 +14,10 @@ export const userVerificationSchema = z.object({
   email: z.string().email('Invalid email address').min(5, 'Email is required'),
   role: z.enum(USER_ROLES, { message: 'Role must be a valid user role' }),
   campus: z.string().regex(/^[a-f\d]{24}$/i, 'Campus ID must be a valid MongoDB ObjectId'),
-  department: z.string().regex(/^[a-f\d]{24}$/i, 'Department ID must be a valid MongoDB ObjectId'),
+  department: z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, 'Department ID must be a valid MongoDB ObjectId')
+    .optional(),
 });
 export const userUpdationVerificationSchema = z.object({
   externalId: z

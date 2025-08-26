@@ -8,7 +8,7 @@ export interface ICampus extends Document {
   state: string;
   pinCode: string;
   campusCode: string;
-  admins: Types.ObjectId[]; // references to User._id
+  admins?: Types.ObjectId[]; // references to User._id
   createdAt: Date;
   updatedAt: Date;
 }
