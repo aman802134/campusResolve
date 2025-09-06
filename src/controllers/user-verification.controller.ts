@@ -12,8 +12,8 @@ export const createVerificationUser = async (
   next: NextFunction,
 ) => {
   try {
-    if (req.user?.role !== USER_ROLES.SUPER_ADMIN) {
-      throw new ApiError(403, 'only super admin can create the users!');
+    if (req.user?.role !== USER_ROLES.ADMIN) {
+      throw new ApiError(403, 'only  admin can create the users!');
     }
 
     const { externalId, name, email, role, campus, department }: VerificationType = req.body;
@@ -43,20 +43,24 @@ export const createVerificationUser = async (
 };
 export const getVerifiedUsers = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    if (req.user?.role !== 'admin') {
+      throw new ApiError(403, 'Not allowed ! only admin can fetch verified users');
+    }
     const users = await VerificationModel.find();
     res.status(200).json({ success: true, data: users });
   } catch (err) {
     next(err);
   }
 };
+
 export const updateVerificationUser = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    if (req.user?.role !== USER_ROLES.SUPER_ADMIN) {
-      throw new ApiError(403, 'only super admin can update user data');
+    if (req.user?.role !== USER_ROLES.ADMIN) {
+      throw new ApiError(403, 'only  admin can update user data');
     }
     const userId = req.params.id;
     const user = await VerificationModel.findById(userId);

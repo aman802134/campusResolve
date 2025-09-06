@@ -19,20 +19,15 @@ router.post(
   '/create-verified-user',
   validateRequest(userVerificationSchema),
   authenticate,
-  authorize(USER_ROLES.SUPER_ADMIN),
+  authorize(USER_ROLES.ADMIN),
   createVerificationUser,
 );
-router.get(
-  '/get-verified-users',
-  authenticate,
-  authorize(USER_ROLES.SUPER_ADMIN),
-  getVerifiedUsers,
-);
+router.get('/get-verified-users', authenticate, authorize(USER_ROLES.ADMIN), getVerifiedUsers);
 router.patch(
   '/update-verified-user',
   validateRequest(userUpdationVerificationSchema),
   authenticate,
-  authorize(USER_ROLES.SUPER_ADMIN),
+  authorize(USER_ROLES.ADMIN),
   updateVerificationUser,
 );
 

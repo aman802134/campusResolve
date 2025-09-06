@@ -14,9 +14,10 @@ export enum USER_ROLES {
   STUDENT = 'student',
   FACULTY_ACADEMIC = 'faculty_academic',
   FACULTY_NON_ACADEMIC = 'faculty_non_academic',
-  DEPARTMENT_ADMIN = 'department_admin',
-  CAMPUS_ADMIN = 'campus_admin',
+  DEPARTMENT_HEAD = 'department_head',
+  CAMPUS_HEAD = 'campus_head',
   SUPER_ADMIN = 'super_admin',
+  ADMIN = 'admin',
 }
 export enum USER_STATUS {
   ACTIVE = 'active',

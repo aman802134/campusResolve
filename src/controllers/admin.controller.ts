@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { UserModel } from '../models/user.model';
-import { VerificationModel } from '../models/verification.model';
 import { ApiError } from '../utils/api-error';
 import {
   RegisterType,
@@ -20,6 +19,8 @@ import { requestRoleSchema } from '../validations/request-role-validation';
 import mongoose from 'mongoose';
 import { config } from '../config/config';
 import uploadFile from '../cloudinary/cloudinary';
+import { AdminVerificationModel } from '../models/admin.-verification.model';
+import { AdminModel } from '../models/admin.model';
 
 export const register = async (
   req: Request<{}, {}, RegisterType>,
@@ -61,7 +62,7 @@ export const register = async (
       throw new ApiError(409, 'Email already in use');
     }
     // Verify against pre-seeded verification data
-    const match = await VerificationModel.findOne({
+    const match = await AdminVerificationModel.findOne({
       email: payload.email,
       externalId: payload.externalId,
       campus: new mongoose.Types.ObjectId(payload.campus),
@@ -74,15 +75,12 @@ export const register = async (
 
     const hashedPassword = await bcrypt.hash(payload.password, 10);
 
-    const newUser = await UserModel.create({
+    const newUser = await AdminModel.create({
       ...payload,
       password: hashedPassword,
       role: match.role, // ✅ Assign role from verification record
       campus: match.campus,
-      department: match.department,
       avatarUrl: imageUrl,
-      roleRequestStatus: null,
-      requestedRole: null,
       status: USER_STATUS.ACTIVE,
       verified: true,
       isBanned: false,
@@ -90,7 +88,7 @@ export const register = async (
 
     res.status(201).json({
       success: true,
-      message: 'User registered and verified successfully',
+      message: 'Admin registered and verified successfully',
       userId: newUser._id,
     });
   } catch (err) {
@@ -106,7 +104,7 @@ export const login = async (
   try {
     const { email, password } = req.body;
 
-    const user = await UserModel.findOne({ email });
+    const user = await AdminModel.findOne({ email });
 
     if (!user) {
       throw new ApiError(401, 'Email not found');
@@ -131,9 +129,7 @@ export const login = async (
       email: user.email,
       externalId: user.externalId,
       role: user.role,
-      requestedRole: user.requestedRole || undefined,
       campus: user.campus?.toString(),
-      department: user.department?.toString(),
       status: user.status,
       verified: user.verified,
       isBanned: user.isBanned,
@@ -170,9 +166,7 @@ export const login = async (
         email: user.email,
         externalId: user.externalId,
         role: user.role,
-        requestedRole: user.requestedRole || undefined,
         campus: user.campus?.toString() || '',
-        department: user.department?.toString(),
         phone: user.phone || '',
         gender: user.gender,
         avatarUrl: user.avatarUrl || '',
@@ -207,7 +201,7 @@ export const authMe = async (req: AuthRequest, res: Response, next: NextFunction
     // if (typeof decoded === 'string') {
     //   throw new ApiError(401, 'Invalid token format');
     // }
-    const user = await UserModel.findById(decoded.userId).select('-password');
+    const user = await AdminModel.findById(decoded.userId).select('-password');
     if (!user) {
       throw new ApiError(404, 'user not found');
     }
@@ -326,54 +320,59 @@ export const requestRole = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const users = await UserModel.find();
-//     res.status(200).json({ success: true, data: users });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+export const getUsers = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const requester = req.user;
+    const allowedRoles = [USER_ROLES.ADMIN, USER_ROLES.CAMPUS_HEAD];
+    if (!requester || !allowedRoles.includes(requester.role)) {
+      throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
+    }
+    const users = await UserModel.find();
+    res.status(200).json({ success: true, data: users });
+  } catch (err) {
+    next(err);
+  }
+};
 
-// export const getUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
-//   try {
-//     // Only super_admin, campus_admin, department_admin, or faculty_academic can access
-//     const requester = req.user;
-//     const allowedRoles = [
-//       USER_ROLES.SUPER_ADMIN,
-//       USER_ROLES.CAMPUS_HEAD,
-//       USER_ROLES.DEPARTMENT_HEAD,
-//       USER_ROLES.FACULTY_ACADEMIC,
-//     ];
-//     if (!requester || !allowedRoles.includes(requester.role)) {
-//       throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
-//     }
-//     const userId = req.params.userId;
-//     if (!userId) {
-//       throw new ApiError(400, 'userId not found');
-//     }
-//     const user = await UserModel.findById(userId);
-//     if (!user) {
-//       throw new ApiError(404, 'user not found');
-//     }
-//     // Only super_admin can fetch any user; others must match campus
-//     if (
-//       requester.role !== 'super_admin' &&
-//       (!user.campus || !requester.campus || user.campus.toString() !== requester.campus.toString())
-//     ) {
-//       throw new ApiError(403, 'Forbidden: You can only access users from your own campus');
-//     }
-//     // Department admin can only fetch users from their own department
-//     if (
-//       requester.role === 'department_head' &&
-//       (!user.department ||
-//         !requester.department ||
-//         user.department.toString() !== requester.department.toString())
-//     ) {
-//       throw new ApiError(403, 'Forbidden: You can only access users from your own department');
-//     }
-//     res.status(200).json({ success: true, data: user });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+export const getUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // Only super_admin, campus_admin, department_admin, or faculty_academic can access
+    const requester = req.user;
+    const allowedRoles = [
+      USER_ROLES.ADMIN,
+      USER_ROLES.CAMPUS_HEAD,
+      USER_ROLES.DEPARTMENT_HEAD,
+      USER_ROLES.FACULTY_ACADEMIC,
+    ];
+    if (!requester || !allowedRoles.includes(requester.role)) {
+      throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
+    }
+    const userId = req.params.userId;
+    if (!userId) {
+      throw new ApiError(400, 'userId not found');
+    }
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new ApiError(404, 'user not found');
+    }
+    // Only super_admin can fetch any user; others must match campus
+    if (
+      requester.role !== 'super_admin' &&
+      (!user.campus || !requester.campus || user.campus.toString() !== requester.campus.toString())
+    ) {
+      throw new ApiError(403, 'Forbidden: You can only access users from your own campus');
+    }
+    // Department admin can only fetch users from their own department
+    if (
+      requester.role === 'department_head' &&
+      (!user.department ||
+        !requester.department ||
+        user.department.toString() !== requester.department.toString())
+    ) {
+      throw new ApiError(403, 'Forbidden: You can only access users from your own department');
+    }
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};

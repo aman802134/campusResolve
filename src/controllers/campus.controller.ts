@@ -4,7 +4,8 @@ import { CampusModel } from '../models/campus.model';
 import { CreateCampusPayload, UpdateCampusPayload } from '../types/campus.types';
 import { ApiError } from '../utils/api-error';
 import { AuthRequest } from '../types/request';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { AdminVerificationModel } from '../models/admin.-verification.model';
 
 /**
  * @desc Create a new campus
@@ -26,7 +27,7 @@ export const createCampus = async (req: AuthRequest, res: Response, next: NextFu
       adminIds = [],
     }: CreateCampusPayload = req.body;
 
-    if (!name || !location || !campusCode) {
+    if (!name || !address || !campusCode) {
       throw new ApiError(400, 'Name, location and campusCode are required');
     }
 
@@ -137,5 +138,62 @@ export const getCampusById = async (req: AuthRequest, res: Response, next: NextF
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const assignAdminToCampus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (req.user?.role !== 'super_admin') {
+      throw new ApiError(403, 'Only super admin can perform this action');
+    }
+
+    const { campusId, adminId } = req.body as { campusId: string; adminId: string };
+
+    if (!mongoose.Types.ObjectId.isValid(campusId) || !mongoose.Types.ObjectId.isValid(adminId)) {
+      throw new ApiError(400, 'Invalid campusId or adminId');
+    }
+
+    const campus = await CampusModel.findById(campusId).populate('admins');
+    if (!campus) {
+      throw new ApiError(404, 'Campus not found');
+    }
+
+    const admin = await AdminVerificationModel.findById(adminId);
+    if (!admin) {
+      throw new ApiError(404, 'Admin not found');
+    }
+
+    // 1. Check if admin is already assigned to ANY campus
+    const alreadyAssignedCampus = await CampusModel.findOne({ admins: admin._id });
+    if (alreadyAssignedCampus) {
+      if (alreadyAssignedCampus._id === campusId) {
+        // Admin already belongs to this campus
+        return res.status(200).json({
+          success: true,
+          message: 'Admin is already assigned to this campus',
+          campus,
+        });
+      } else {
+        // Admin belongs to another campus
+        throw new ApiError(
+          400,
+          `Admin is already assigned to campus: ${alreadyAssignedCampus.name}`,
+        );
+      }
+    }
+
+    // 2. If admin not already assigned anywhere, add to this campus
+    if (!campus.admins?.some((id) => id.toString() === admin._id)) {
+      campus.admins?.push(admin._id as Types.ObjectId);
+      await campus.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Admin ${admin.name} assigned to campus ${campus.name}`,
+      campus,
+    });
+  } catch (err) {
+    next(err);
   }
 };

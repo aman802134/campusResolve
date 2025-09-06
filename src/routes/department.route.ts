@@ -12,18 +12,13 @@ import { USER_ROLES } from '../types/enums';
 
 const router = express.Router();
 
-router.post(
-  '/create-department',
-  authenticate,
-  authorize(USER_ROLES.SUPER_ADMIN),
-  createDepartment,
-);
+router.post('/create-department', authenticate, authorize(USER_ROLES.ADMIN), createDepartment);
 router.get('/get-departments', getDepartments);
 router.get('/get-department/:departmentId', authenticate, getDepartmentById);
 router.patch(
   '/:departmentId/domain',
   authenticate,
-  authorize(USER_ROLES.SUPER_ADMIN, USER_ROLES.CAMPUS_ADMIN),
+  authorize(USER_ROLES.ADMIN, USER_ROLES.CAMPUS_HEAD, USER_ROLES.DEPARTMENT_HEAD),
   updateDomain,
 );
 

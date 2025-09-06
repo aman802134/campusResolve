@@ -1,3 +1,4 @@
+import { boolean, success } from 'zod';
 import { PRIORITY, TICKET_STATUS } from './enums';
 
 export type CreateTicketPayload = {
@@ -58,4 +59,9 @@ export type TicketResponse = {
   }>;
   createdAt: string;
   updatedAt: string;
+};
+export type TicketApiResponse = {
+  success: boolean;
+  message: string;
+  ticket: TicketResponse;
 };

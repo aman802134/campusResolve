@@ -1,29 +1,26 @@
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
-import { UserModel } from '../models/user.model';
-import { USER_ROLES, USER_STATUS } from '../types/enums';
+import { GENDER, USER_ROLES } from '../types/enums';
 import { config } from '../config/config';
+import { SuperAdminModel } from '../models/super-admin.model';
+import { ApiError } from '../utils/api-error';
 
 async function seedSuperAdmin() {
   try {
     await mongoose.connect(config.mongoUri);
-    const existing = await UserModel.findOne({ role: USER_ROLES.SUPER_ADMIN });
-
+    const existing = await SuperAdminModel.findOne({ role: USER_ROLES.SUPER_ADMIN });
     if (existing) {
       console.log('Super Admin already exists');
-      return;
+      throw new ApiError(400, 'super admin already exists');
     }
 
     const hashedPassword = await bcrypt.hash('superadmin123', 10);
-    await UserModel.create({
+    const superAdmin = await SuperAdminModel.create({
       name: 'Super Admin',
       email: 'superadmin@example.com',
       password: hashedPassword,
       role: USER_ROLES.SUPER_ADMIN,
-      campus: undefined,
-      verified: true,
-      isBanned: false,
-      status: USER_STATUS.ACTIVE,
+      gender: 'male',
     });
 
     console.log('✅ Super Admin seeded successfully');

@@ -49,7 +49,7 @@ const verificationSchema = new Schema<IVerification>(
           USER_ROLES.STUDENT,
           USER_ROLES.FACULTY_ACADEMIC,
           USER_ROLES.FACULTY_NON_ACADEMIC,
-          USER_ROLES.DEPARTMENT_ADMIN,
+          USER_ROLES.DEPARTMENT_HEAD,
         ].includes(this.role);
       },
     },

@@ -1,7 +1,7 @@
 // controllers/ticket.controller.ts
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types/request';
-import { CreateTicketPayload, UpdateTicketPayload } from '../types/ticket.types';
+import { CreateTicketPayload, TicketApiResponse, UpdateTicketPayload } from '../types/ticket.types';
 import { TICKET_STATUS, USER_ROLES } from '../types/enums';
 import { ApiError } from '../utils/api-error';
 import { TicketModel } from '../models/ticket.model';
@@ -111,12 +111,16 @@ export const getUserTickets = async (req: AuthRequest, res: Response, next: Next
 export const getAllTickets = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { role, campus } = req.user!;
-    if (![USER_ROLES.CAMPUS_ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)) {
+    if (![USER_ROLES.CAMPUS_HEAD, USER_ROLES.ADMIN].includes(role)) {
       throw new ApiError(403, 'Forbidden');
     }
 
     const campusFilter = (req.query.campus as string) || campus;
-    const tickets = await TicketModel.find({ campus: campusFilter })
+    const query: any = {};
+    if (role !== USER_ROLES.ADMIN) {
+      query.campus = campusFilter;
+    }
+    const tickets = await TicketModel.find(query)
       .populate('createdBy', 'name')
       .populate('assignedTo', 'name')
       .populate('department', 'name')
@@ -170,6 +174,16 @@ export const getTicketById = async (req: AuthRequest, res: Response, next: NextF
 // Update ticket status or assignee
 export const updateTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const requester = req.user;
+    const allowedRoles = [
+      USER_ROLES.ADMIN,
+      USER_ROLES.CAMPUS_HEAD,
+      USER_ROLES.DEPARTMENT_HEAD,
+      USER_ROLES.FACULTY_ACADEMIC,
+    ];
+    if (!requester || !allowedRoles.includes(requester.role)) {
+      throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
+    }
     const ticketId = req.params.ticketId;
     const payload: UpdateTicketPayload = req.body;
 
@@ -219,9 +233,7 @@ export const escalateTicket = async (req: AuthRequest, res: Response, next: Next
     if (!ticket) throw new ApiError(404, 'Ticket not found');
 
     const { role, userId } = req.user!;
-    if (
-      ![USER_ROLES.CAMPUS_ADMIN, USER_ROLES.DEPARTMENT_ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)
-    ) {
+    if (![USER_ROLES.CAMPUS_HEAD, USER_ROLES.DEPARTMENT_HEAD, USER_ROLES.ADMIN].includes(role)) {
       throw new ApiError(403, 'Forbidden');
     }
 

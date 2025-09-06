@@ -13,7 +13,7 @@ import mongoose from 'mongoose';
  */
 export const createDepartment = async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user?.role !== USER_ROLES.SUPER_ADMIN) {
+    if (req.user?.role !== USER_ROLES.ADMIN) {
       throw new ApiError(403, 'Only super admin can create departments');
     }
 
@@ -144,13 +144,15 @@ export const updateDomain = async (req: AuthRequest, res: Response) => {
 
     const user = req.user!;
 
-    const isDeptAdmin =
-      user.role === USER_ROLES.DEPARTMENT_ADMIN && department.admin?.toString() === user.userId;
+    const isDeptHead =
+      user.role === USER_ROLES.DEPARTMENT_HEAD && department.admin?.toString() === user.userId;
 
-    const isCampusAdmin =
-      user.role === USER_ROLES.CAMPUS_ADMIN && department.campus?._id.toString() === user.campus;
+    const isCampusHead =
+      user.role === USER_ROLES.CAMPUS_HEAD && department.campus?._id.toString() === user.campus;
+    const isAdmin =
+      user.role === USER_ROLES.ADMIN && department.campus?._id.toString() === user.campus;
 
-    if (!isDeptAdmin && !isCampusAdmin) {
+    if (!isDeptHead && !isCampusHead && isAdmin) {
       throw new ApiError(403, 'You do not have permission to update department domains');
     }
 

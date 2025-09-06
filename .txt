@@ -18,3 +18,33 @@
     "departmentCode": "DS",
     "campus": "688fd5cff2bb1f470d43a687"
   }
+
+
+
+
+
+
+
+
+
+  {
+  "_id": {
+    "$oid": "68ba52ede142249bf94356de"
+  },
+  "name": "Super Admin",
+  "email": "superadmin@example.com",
+  "password": "$2b$10$AKkCULC5cOoI0ozGxGrlser/G6IFfn1FpPmMzo6HisBPGZ7qI0SLG",
+  "role": "super_admin",
+  "phone": "",
+  "status": "active",
+  "avatarUrl": "",
+  "verified": true,
+  "isBanned": false,
+  "createdAt": {
+    "$date": "2025-09-05T03:03:09.998Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T03:03:09.998Z"
+  },
+  "__v": 0
+}
