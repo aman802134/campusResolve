@@ -24,7 +24,7 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
     // Role-specific required field validation
     if (
       [
-        USER_ROLES.DEPARTMENT_ADMIN,
+        USER_ROLES.DEPARTMENT_HEAD,
         USER_ROLES.STUDENT,
         USER_ROLES.FACULTY_ACADEMIC,
         USER_ROLES.FACULTY_NON_ACADEMIC,
@@ -34,7 +34,7 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
         throw new ApiError(400, `Cannot assign role ${user.requestedRole}: department is missing.`);
       }
     }
-    if (user.requestedRole === USER_ROLES.CAMPUS_ADMIN) {
+    if (user.requestedRole === USER_ROLES.CAMPUS_HEAD) {
       if (!user.campus) {
         throw new ApiError(400, 'Cannot assign campus_admin: campus is missing.');
       }
@@ -46,14 +46,14 @@ export const approveRequestedRole = async (req: Request, res: Response, next: Ne
     user.roleRequestStatus = ROLE_REQUEST_STATUS.APPROVED;
     await user.save();
 
-    if (user.role === USER_ROLES.CAMPUS_ADMIN && user.campus) {
+    if (user.role === USER_ROLES.CAMPUS_HEAD && user.campus) {
       await CampusModel.findByIdAndUpdate(
         user.campus,
         { $addToSet: { admins: user._id } }, // $addToSet avoids duplicates
         { new: true },
       );
     }
-    if (user.role === USER_ROLES.DEPARTMENT_ADMIN && user.department) {
+    if (user.role === USER_ROLES.DEPARTMENT_HEAD && user.department) {
       await DepartmentModel.findByIdAndUpdate(
         user.department,
         { $set: { admin: user._id } }, // $addToSet avoids duplicates

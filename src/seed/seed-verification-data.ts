@@ -25,7 +25,7 @@ const verificationSeedData = [
     externalId: 'QVC-DPT001',
     name: 'Charlie Quantum',
     email: 'charlie.qvc@example.com',
-    role: USER_ROLES.DEPARTMENT_ADMIN,
+    role: USER_ROLES.DEPARTMENT_HEAD,
     campus: '688fd5abf2bb1f470d43a684',
     department: '688fd6c2f2bb1f470d43a6a0',
   },
@@ -33,7 +33,7 @@ const verificationSeedData = [
     externalId: 'QVC-CMP001',
     name: 'Dana Quantum',
     email: 'dana.qvc@example.com',
-    role: USER_ROLES.CAMPUS_ADMIN,
+    role: USER_ROLES.CAMPUS_HEAD,
     campus: '688fd5abf2bb1f470d43a684', // No department needed
   },
   {
