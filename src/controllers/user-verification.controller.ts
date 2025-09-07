@@ -12,39 +12,57 @@ export const createVerificationUser = async (
   next: NextFunction,
 ) => {
   try {
-    if (req.user?.role !== USER_ROLES.ADMIN) {
-      throw new ApiError(403, 'only  admin can create the users!');
+    const { externalId, name, email, role, campus, department }: VerificationType = req.body;
+
+    // Validate required fields
+    if (!externalId || !name || !email || !role || !campus) {
+      throw new ApiError(400, 'Please fill all required fields');
     }
 
-    const { externalId, name, email, role, campus, department }: VerificationType = req.body;
-    if (!externalId || !name || !email || !role || !campus || !department) {
-      throw new ApiError(400, 'Please fill all required field');
+    // Role-based creation rules
+    if (req.user?.role === USER_ROLES.SUPER_ADMIN) {
+      if (role !== USER_ROLES.ADMIN) {
+        throw new ApiError(403, 'Super-admin can only verify admins');
+      }
+    } else if (req.user?.role === USER_ROLES.ADMIN) {
+      if (role === USER_ROLES.ADMIN || role === USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(403, 'Admins cannot verify other admins or super-admins');
+      }
+    } else {
+      throw new ApiError(403, 'Only admins or super-admins can create verified users');
     }
+
+    // Prevent duplicates
     const existingUser = await VerificationModel.findOne({ email });
     if (existingUser) {
-      throw new ApiError(403, 'user already exists in db');
+      throw new ApiError(403, 'User already exists in db');
     }
+
+    // Create verification entry
     const verificationUser = await VerificationModel.create({
       externalId,
       name,
       email,
       role,
-      campus,
-      department,
+      campus: new mongoose.Types.ObjectId(campus),
+      department: department ? new mongoose.Types.ObjectId(department) : undefined,
+      createdBy: req.user.userId,
     });
+
     res.status(201).json({
       success: true,
-      message: 'user created successfully',
+      message: 'User created successfully',
       data: verificationUser,
     });
   } catch (error) {
     next(error);
   }
 };
+
 export const getVerifiedUsers = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (req.user?.role !== 'admin') {
-      throw new ApiError(403, 'Not allowed ! only admin can fetch verified users');
+    if (req.user?.role !== USER_ROLES.ADMIN && req.user?.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(403, 'Not allowed! Only admin or super-admin can fetch verified users');
     }
     const users = await VerificationModel.find();
     res.status(200).json({ success: true, data: users });

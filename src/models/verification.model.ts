@@ -9,6 +9,7 @@ export interface IVerification extends Document {
   role: USER_ROLES;
   campus: Types.ObjectId;
   department?: Types.ObjectId;
+  createdBy: Types.ObjectId;
 }
 
 const verificationSchema = new Schema<IVerification>(
@@ -52,6 +53,11 @@ const verificationSchema = new Schema<IVerification>(
           USER_ROLES.DEPARTMENT_HEAD,
         ].includes(this.role);
       },
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
   },
   {

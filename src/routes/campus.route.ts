@@ -15,7 +15,7 @@ const router = express.Router();
 
 router.post('/create-campus', authenticate, authorize(USER_ROLES.SUPER_ADMIN), createCampus);
 // routes/campus.routes.ts
-router.get('/all-campus', getAllCampuses);
+router.get('/all-campus', authenticate, authorize(USER_ROLES.SUPER_ADMIN), getAllCampuses);
 router.get('/get-campus/:campusId', authenticate, getCampusById);
 // Update campus route
 router.patch(

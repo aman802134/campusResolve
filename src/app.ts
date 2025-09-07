@@ -10,9 +10,6 @@ import { departmentRoute } from './routes/department.route';
 import { campusRoute } from './routes/campus.route';
 // import { assingAdmin } from './routes/assign-admin.route';
 import { verifiedUser } from './routes/verified-user.route';
-import { superAdminAuth } from './routes/super-admin.route';
-import { verifiedAdmins } from './routes/admin-verification.route';
-import { adminAuthRoute } from './routes/admin.route';
 
 const app: Application = express();
 app.use(express.json());
@@ -31,11 +28,8 @@ app.get('/', (req: Request, res: Response) => {
   res.send('uh ! its working');
 });
 
-app.use('/api/v1/auth/super-admin', superAdminAuth);
-app.use('/api/v1/admin/verified', verifiedAdmins);
+app.use('/api/v1/user/verified', verifiedUser);
 app.use('/api/v1/auth/user', userAuthRoute);
-app.use('/api/v1/auth/admin', adminAuthRoute);
-app.use('/api/v1/user/verification', verifiedUser);
 app.use('/api/v1/ticket', ticketRoute);
 app.use('/api/v1/department', departmentRoute);
 app.use('/api/v1/campus', campusRoute);

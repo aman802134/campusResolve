@@ -5,7 +5,7 @@ import { CreateCampusPayload, UpdateCampusPayload } from '../types/campus.types'
 import { ApiError } from '../utils/api-error';
 import { AuthRequest } from '../types/request';
 import mongoose, { Types } from 'mongoose';
-import { AdminVerificationModel } from '../models/admin.-verification.model';
+import { UserModel } from '../models/user.model';
 
 /**
  * @desc Create a new campus
@@ -104,6 +104,9 @@ export const updateCampus = async (req: AuthRequest, res: Response, next: NextFu
  */
 export const getAllCampuses = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    if (req.user?.role !== 'super_admin') {
+      throw new ApiError(403, 'you are not allowed to access the campuses');
+    }
     const campuses = await CampusModel.find().populate('admins', 'name email');
     res.status(200).json({
       success: true,
@@ -158,7 +161,7 @@ export const assignAdminToCampus = async (req: AuthRequest, res: Response, next:
       throw new ApiError(404, 'Campus not found');
     }
 
-    const admin = await AdminVerificationModel.findById(adminId);
+    const admin = await UserModel.findById(adminId);
     if (!admin) {
       throw new ApiError(404, 'Admin not found');
     }

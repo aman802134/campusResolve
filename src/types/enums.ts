@@ -1,15 +1,3 @@
-export enum STATUS_CODE {
-  ok = 200,
-  created = 201,
-  no_content = 204,
-  bad_request = 400,
-  unauthorized = 401,
-  forbidden = 403,
-  not_found = 404,
-  conflict = 409,
-  internal_server_err = 500,
-  network_connec_timeout = 599,
-}
 export enum USER_ROLES {
   STUDENT = 'student',
   FACULTY_ACADEMIC = 'faculty_academic',
