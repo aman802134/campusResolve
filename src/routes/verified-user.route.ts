@@ -9,6 +9,7 @@ import { authorize } from '../middleware/authorization.middleware';
 import { USER_ROLES } from '../types/enums';
 import {
   createVerificationUser,
+  getVerifiedUserById,
   getVerifiedUsers,
   updateVerificationUser,
 } from '../controllers/user-verification.controller';
@@ -28,11 +29,17 @@ router.get(
   authorize(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   getVerifiedUsers,
 );
+router.get(
+  '/get-verified-user/:userId',
+  authenticate,
+  authorize(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  getVerifiedUserById,
+);
 router.patch(
-  '/update-verified-user',
+  '/update-verified-user/:id',
   validateRequest(userUpdationVerificationSchema),
   authenticate,
-  authorize(USER_ROLES.ADMIN),
+  authorize(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   updateVerificationUser,
 );
 

@@ -6,6 +6,7 @@ import { ApiError } from '../utils/api-error';
 import { AuthRequest } from '../types/request';
 import mongoose, { Types } from 'mongoose';
 import { UserModel } from '../models/user.model';
+import { campusDetailPipeline, campusWithCountsPipeline } from '../aggregation-pipeline/campus';
 
 /**
  * @desc Create a new campus
@@ -17,15 +18,7 @@ export const createCampus = async (req: AuthRequest, res: Response, next: NextFu
       throw new ApiError(403, 'Only super admin can perform this action');
     }
 
-    const {
-      name,
-      address,
-      city,
-      state,
-      pinCode,
-      campusCode,
-      adminIds = [],
-    }: CreateCampusPayload = req.body;
+    const { name, address, city, state, pinCode, campusCode }: CreateCampusPayload = req.body;
 
     if (!name || !address || !campusCode) {
       throw new ApiError(400, 'Name, location and campusCode are required');
@@ -46,7 +39,6 @@ export const createCampus = async (req: AuthRequest, res: Response, next: NextFu
       state,
       pinCode,
       campusCode,
-      admins: adminIds.map((id) => new mongoose.Types.ObjectId(id)),
     });
 
     res.status(201).json({
@@ -70,8 +62,7 @@ export const updateCampus = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     const campusId = req.params.campusId;
-    const { name, address, city, state, pinCode, campusCode, adminIds }: UpdateCampusPayload =
-      req.body;
+    const { name, address, city, state, pinCode, campusCode }: UpdateCampusPayload = req.body;
 
     const campus = await CampusModel.findById(campusId);
     if (!campus) {
@@ -84,7 +75,6 @@ export const updateCampus = async (req: AuthRequest, res: Response, next: NextFu
     if (state) campus.state = state;
     if (pinCode) campus.pinCode = pinCode;
     if (campusCode) campus.campusCode = campusCode;
-    if (adminIds) campus.admins = adminIds.map((id) => new mongoose.Types.ObjectId(id));
 
     await campus.save();
 
@@ -107,7 +97,7 @@ export const getAllCampuses = async (req: AuthRequest, res: Response, next: Next
     if (req.user?.role !== 'super_admin') {
       throw new ApiError(403, 'you are not allowed to access the campuses');
     }
-    const campuses = await CampusModel.find().populate('admins', 'name email');
+    const campuses = await CampusModel.aggregate(campusWithCountsPipeline());
     res.status(200).json({
       success: true,
       message: 'All campuses fetched successfully',
@@ -129,7 +119,7 @@ export const getCampusById = async (req: AuthRequest, res: Response, next: NextF
       throw new ApiError(400, 'Campus ID is required');
     }
 
-    const campus = await CampusModel.findById(campusId).populate('admins', 'name email');
+    const campus = await CampusModel.findById(campusId).populate('admins');
     if (!campus) {
       throw new ApiError(404, 'Campus not found');
     }

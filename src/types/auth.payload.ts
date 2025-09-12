@@ -27,6 +27,7 @@ export interface UpdateVerificationType {
   name?: string;
   email?: string;
   campus?: string;
+  role?: string;
   department?: string;
 }
 export interface RequestedRoleType {

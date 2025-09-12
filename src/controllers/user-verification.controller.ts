@@ -64,10 +64,39 @@ export const getVerifiedUsers = async (req: AuthRequest, res: Response, next: Ne
     if (req.user?.role !== USER_ROLES.ADMIN && req.user?.role !== USER_ROLES.SUPER_ADMIN) {
       throw new ApiError(403, 'Not allowed! Only admin or super-admin can fetch verified users');
     }
-    const users = await VerificationModel.find();
+    const requester = req.user;
+    const query: any = {};
+
+    query._id = { $ne: requester.userId };
+    const users = await VerificationModel.find(query).populate('campus').populate('department');
     res.status(200).json({ success: true, data: users });
   } catch (err) {
     next(err);
+  }
+};
+
+export const getVerifiedUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // Only super_admin, campus_admin, department_admin, or faculty_academic can access
+    const requester = req.user;
+    const allowedRoles = [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN];
+    if (!requester || !allowedRoles.includes(requester.role)) {
+      throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
+    }
+    const userId = req.params.userId;
+    if (!userId) {
+      throw new ApiError(400, 'userId not found');
+    }
+    const user = await VerificationModel.findById(userId)
+      .populate('campus')
+      .populate('department')
+      .lean();
+    if (!user) {
+      throw new ApiError(404, 'user not found');
+    }
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -77,8 +106,8 @@ export const updateVerificationUser = async (
   next: NextFunction,
 ) => {
   try {
-    if (req.user?.role !== USER_ROLES.ADMIN) {
-      throw new ApiError(403, 'only  admin can update user data');
+    if (req.user?.role !== USER_ROLES.ADMIN && req.user?.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(403, 'only  admins can update user data');
     }
     const userId = req.params.id;
     const user = await VerificationModel.findById(userId);
@@ -86,21 +115,23 @@ export const updateVerificationUser = async (
       throw new ApiError(400, 'userId not found in the db');
     }
 
-    const { externalId, name, email, campus, department }: UpdateVerificationType = req.body;
-    if (!externalId && !name && !email && !campus && !department) {
-      throw new ApiError(400, 'At least one field must be provided to update');
-    }
-    if (externalId) user.externalId = externalId;
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (campus) user.campus = new mongoose.Types.ObjectId(campus);
-    if (department) user.department = new mongoose.Types.ObjectId(department);
-    const updatedUser = await user.save();
+    const { externalId, name, email, campus, department, role }: UpdateVerificationType = req.body;
+    // if (!externalId || !name || !email || !campus || !department) {
+    //   throw new ApiError(400, 'At least one field must be provided to update');
+    // }
+    const updates: any = {};
+    if (req.body.name !== undefined) updates.name = req.body.name;
+    if (req.body.email !== undefined) updates.email = req.body.email;
+    if (req.body.role !== undefined) updates.role = req.body.role;
+    if (req.body.campus !== undefined) updates.campus = req.body.campus;
+    if (req.body.department !== undefined) updates.department = req.body.department;
+
+    await VerificationModel.findByIdAndUpdate(userId, { $set: updates }, { new: true });
 
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
-      data: updatedUser,
+      data: updates,
     });
   } catch (error) {
     next(error);

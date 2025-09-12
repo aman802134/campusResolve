@@ -6,7 +6,7 @@ export interface IVerification extends Document {
   externalId: string; // like studentId, facultyId, adminId, etc.
   name: string;
   email: string;
-  role: USER_ROLES;
+  role: USER_ROLES | string;
   campus: Types.ObjectId;
   department?: Types.ObjectId;
   createdBy: Types.ObjectId;
@@ -45,14 +45,6 @@ const verificationSchema = new Schema<IVerification>(
     department: {
       type: Schema.Types.ObjectId,
       ref: 'Department',
-      required: function (this: IVerification) {
-        return [
-          USER_ROLES.STUDENT,
-          USER_ROLES.FACULTY_ACADEMIC,
-          USER_ROLES.FACULTY_NON_ACADEMIC,
-          USER_ROLES.DEPARTMENT_HEAD,
-        ].includes(this.role);
-      },
     },
     createdBy: {
       type: Schema.Types.ObjectId,

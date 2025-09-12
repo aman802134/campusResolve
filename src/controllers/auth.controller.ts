@@ -17,7 +17,7 @@ import { ROLE_REQUEST_STATUS, USER_ROLES, USER_STATUS } from '../types/enums';
 import { AuthRequest } from '../types/request';
 import { registerSchema } from '../validations/auth-schema.validation';
 import { requestRoleSchema } from '../validations/request-role-validation';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { config } from '../config/config';
 import uploadFile from '../cloudinary/cloudinary';
 
@@ -326,54 +326,96 @@ export const requestRole = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const users = await UserModel.find();
-//     res.status(200).json({ success: true, data: users });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+export const getUsers = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const requester = req.user!;
+    const { role, campus } = requester;
 
-// export const getUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
-//   try {
-//     // Only super_admin, campus_admin, department_admin, or faculty_academic can access
-//     const requester = req.user;
-//     const allowedRoles = [
-//       USER_ROLES.SUPER_ADMIN,
-//       USER_ROLES.CAMPUS_HEAD,
-//       USER_ROLES.DEPARTMENT_HEAD,
-//       USER_ROLES.FACULTY_ACADEMIC,
-//     ];
-//     if (!requester || !allowedRoles.includes(requester.role)) {
-//       throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
-//     }
-//     const userId = req.params.userId;
-//     if (!userId) {
-//       throw new ApiError(400, 'userId not found');
-//     }
-//     const user = await UserModel.findById(userId);
-//     if (!user) {
-//       throw new ApiError(404, 'user not found');
-//     }
-//     // Only super_admin can fetch any user; others must match campus
-//     if (
-//       requester.role !== 'super_admin' &&
-//       (!user.campus || !requester.campus || user.campus.toString() !== requester.campus.toString())
-//     ) {
-//       throw new ApiError(403, 'Forbidden: You can only access users from your own campus');
-//     }
-//     // Department admin can only fetch users from their own department
-//     if (
-//       requester.role === 'department_head' &&
-//       (!user.department ||
-//         !requester.department ||
-//         user.department.toString() !== requester.department.toString())
-//     ) {
-//       throw new ApiError(403, 'Forbidden: You can only access users from your own department');
-//     }
-//     res.status(200).json({ success: true, data: user });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+    const allowedRoles = [
+      USER_ROLES.ADMIN,
+      USER_ROLES.CAMPUS_HEAD,
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.DEPARTMENT_HEAD,
+      USER_ROLES.FACULTY_ACADEMIC,
+    ];
+
+    if (!allowedRoles.includes(role)) {
+      throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
+    }
+
+    const query: any = {};
+
+    if (role === USER_ROLES.ADMIN || role === USER_ROLES.CAMPUS_HEAD) {
+      query.campus = new Types.ObjectId(campus as string);
+    } else if (role === USER_ROLES.SUPER_ADMIN) {
+      if (req.query.campus) {
+        query.campus = new Types.ObjectId(req.query.campus as string);
+      }
+    } else if (role === USER_ROLES.DEPARTMENT_HEAD || role === USER_ROLES.FACULTY_ACADEMIC) {
+      query.campus = new Types.ObjectId(campus as string);
+      // You could also add department restriction here
+      // query.department = new Types.ObjectId(requester.department as string);
+    }
+
+    // Exclude requester themselves
+    if (requester.userId) {
+      query._id = { $ne: new Types.ObjectId(requester.userId as string) };
+    }
+
+    const users = await UserModel.find(query)
+      .select('-password')
+      .populate('campus')
+      .populate('department');
+
+    res.status(200).json({
+      success: true,
+      message: 'All users fetched successfully',
+      data: users,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // Only super_admin, campus_admin, department_admin, or faculty_academic can access
+    const requester = req.user;
+    const allowedRoles = [
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.CAMPUS_HEAD,
+      USER_ROLES.DEPARTMENT_HEAD,
+      USER_ROLES.FACULTY_ACADEMIC,
+    ];
+    if (!requester || !allowedRoles.includes(requester.role)) {
+      throw new ApiError(403, 'Forbidden: You are not allowed to perform this action');
+    }
+    const userId = req.params.userId;
+    if (!userId) {
+      throw new ApiError(400, 'userId not found');
+    }
+    const user = await UserModel.findById(userId).populate('campus').populate('department');
+    if (!user) {
+      throw new ApiError(404, 'user not found');
+    }
+    // Only super_admin can fetch any user; others must match campus
+    if (
+      requester.role !== 'super_admin' &&
+      (!user.campus || !requester.campus || user.campus.toString() !== requester.campus.toString())
+    ) {
+      throw new ApiError(403, 'Forbidden: You can only access users from your own campus');
+    }
+    // Department admin can only fetch users from their own department
+    if (
+      requester.role === 'department_head' &&
+      (!user.department ||
+        !requester.department ||
+        user.department.toString() !== requester.department.toString())
+    ) {
+      throw new ApiError(403, 'Forbidden: You can only access users from your own department');
+    }
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};

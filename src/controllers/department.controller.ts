@@ -1,11 +1,13 @@
 // controllers/department.controller.ts
-import { Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { DepartmentModel } from '../models/department.model';
 import { CreateDepartmentPayload } from '../types/department.types';
 import { ApiError } from '../utils/api-error';
 import { AuthRequest } from '../types/request';
 import { USER_ROLES } from '../types/enums';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { UserModel } from '../models/user.model';
+import { departmentWithUserCountsPipeline } from '../aggregation-pipeline/department';
 
 /**
  * @desc Create a new department
@@ -124,6 +126,70 @@ export const getDepartmentById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const assignAdminToDepartment = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      throw new ApiError(403, 'Only  admin can perform this action');
+    }
+
+    const { departmentId, adminId } = req.body as { departmentId: string; adminId: string };
+
+    if (
+      !mongoose.Types.ObjectId.isValid(departmentId) ||
+      !mongoose.Types.ObjectId.isValid(adminId)
+    ) {
+      throw new ApiError(400, 'Invalid campusId or adminId');
+    }
+
+    const department = await DepartmentModel.findById(departmentId).populate('admin');
+    if (!department) {
+      throw new ApiError(404, 'Campus not found');
+    }
+
+    const admin = await UserModel.findById(adminId);
+    if (!admin) {
+      throw new ApiError(404, 'Admin not found');
+    }
+
+    // 1. Check if admin is already assigned to ANY campus
+    const alreadyAssignedCampus = await DepartmentModel.findOne({ admins: admin._id });
+    if (alreadyAssignedCampus) {
+      if (alreadyAssignedCampus._id === departmentId) {
+        // Admin already belongs to this campus
+        return res.status(200).json({
+          success: true,
+          message: 'Admin is already assigned to this campus',
+          department,
+        });
+      } else {
+        // Admin belongs to another campus
+        throw new ApiError(
+          400,
+          `Admin is already assigned to campus: ${alreadyAssignedCampus.name}`,
+        );
+      }
+    }
+
+    // 2. If admin not already assigned anywhere, add to this campus
+    if (!department.admin || department.admin.toString() !== admin._id) {
+      department.admin = admin._id as Types.ObjectId;
+      await department.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Admin ${admin.name} assigned to campus ${department.name}`,
+      department,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 /**
  * @desc Update department domain list
  * @access campus_admin or department_admin (own department/campus only)
@@ -144,15 +210,10 @@ export const updateDomain = async (req: AuthRequest, res: Response) => {
 
     const user = req.user!;
 
-    const isDeptHead =
-      user.role === USER_ROLES.DEPARTMENT_HEAD && department.admin?.toString() === user.userId;
-
-    const isCampusHead =
-      user.role === USER_ROLES.CAMPUS_HEAD && department.campus?._id.toString() === user.campus;
     const isAdmin =
       user.role === USER_ROLES.ADMIN && department.campus?._id.toString() === user.campus;
 
-    if (!isDeptHead && !isCampusHead && isAdmin) {
+    if (!isAdmin) {
       throw new ApiError(403, 'You do not have permission to update department domains');
     }
 
@@ -168,6 +229,36 @@ export const updateDomain = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update department domain',
+      error: error.message,
+    });
+  }
+};
+
+// controllers/department.controller.ts
+
+export const getDepartmentsWithCounts = async (req: AuthRequest, res: Response) => {
+  try {
+    // Decide campus filter based on user role
+    let campusId = req.query.campusId as string;
+
+    // Example: if logged-in user is admin, use their campus automatically:
+    if (req.user?.role === USER_ROLES.ADMIN) {
+      campusId = req.user.campus as string; // their campus
+    }
+
+    const pipeline = departmentWithUserCountsPipeline(campusId);
+
+    const departments = await DepartmentModel.aggregate(pipeline);
+
+    res.status(200).json({
+      success: true,
+      message: 'Departments with user counts fetched successfully',
+      data: departments,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Department fetching failed',
       error: error.message,
     });
   }
